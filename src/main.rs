@@ -28,6 +28,7 @@ fn main() -> Result<()> {
     };
 
     println!("config loaded: {:#?}", config);
+    println!("config serialized: \n{}", toml::to_string(&config).unwrap());
 
     Ok(())
 }

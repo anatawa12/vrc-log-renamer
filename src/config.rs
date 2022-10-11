@@ -37,11 +37,11 @@ impl ConfigFile {
 
 #[derive(Serialize, Debug)]
 pub struct Source {
-    #[serde(skip, default = "Source::folder_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Source::folder_default")]
     folder: PathBuf,
-    #[serde(skip, default = "Source::pattern_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Source::pattern_default")]
     pattern: Regex,
-    #[serde(skip, default = "Source::keep_old_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Source::keep_old_default")]
     keep_old: bool,
 }
 
@@ -92,11 +92,11 @@ impl Default for Source {
 
 #[derive(Serialize, Debug)]
 pub struct Output {
-    #[serde(skip, default = "Output::folder_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Output::folder_default")]
     folder: PathBuf,
-    #[serde(skip, default = "Output::pattern_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Output::pattern_default")]
     pattern: Vec<Item<'static>>,
-    #[serde(skip, default = "Output::utc_time_default")]
+    #[serde(skip_serializing_if = "Option::is_none", default = "Output::utc_time_default")]
     utc_time: bool,
 }
 
