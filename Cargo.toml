@@ -1,3 +1,5 @@
+[workspace]
+members = ['.', 'proc-macros']
 [package]
 name = "vrc-log-renamer"
 version = "0.1.0"
@@ -14,3 +16,4 @@ serde = { version = "1.0.145", features = ["derive"] }
 take-if = "1.0.0"
 toml = "0.5.9"
 winsafe = { version = "0.0.11", features = ["gui"] }
+proc-macros = { path = "proc-macros" }
