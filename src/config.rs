@@ -224,7 +224,9 @@ fn serialize_pattern<S: serde::Serializer>(
                 Fixed::TimezoneOffset => string.push_str("%z"),
                 Fixed::RFC2822 => string.push_str("%c"),
                 Fixed::RFC3339 => string.push_str("%+"),
-                Fixed::TimezoneOffsetColonZ => return Err(S::Error::custom("internal format found")),
+                Fixed::TimezoneOffsetColonZ => {
+                    return Err(S::Error::custom("internal format found"))
+                }
                 Fixed::TimezoneOffsetZ => return Err(S::Error::custom("internal format found")),
                 Fixed::Internal(_) => return Err(S::Error::custom("internal format found")),
             },
@@ -341,6 +343,8 @@ pub fn read_config() -> io::Result<ConfigFile> {
 
 pub fn save_config(config: &ConfigFile) -> io::Result<()> {
     fs::create_dir_all(config_file_path().parent().unwrap())?;
-    fs::write(config_file_path(), toml::to_string(config)
-        .map_err(|e| Error::new(ErrorKind::InvalidData, e))?)
+    fs::write(
+        config_file_path(),
+        toml::to_string(config).map_err(|e| Error::new(ErrorKind::InvalidData, e))?,
+    )
 }
