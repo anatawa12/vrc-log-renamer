@@ -28,22 +28,17 @@ fn main() -> Result<()> {
     };
 
     println!("config loaded: {:#?}", config);
-    println!("config serialized: \n{}", toml::to_string(&config).unwrap());
-
 
     match save_config(&config) {
         Ok(()) => println!("config file written to: {}", config_file_path().display()),
         Err(e) => {
             eprintln!("error writing config: {:?}", e);
             let message = format!(
-                "Error writing config file: {}.\nClick OK to skip saving config.",
+                "Error writing config file: {}.",
                 e
             );
-            if HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OKCANCEL)? == DLGID::OK {
-                eprintln!("error ignored, continue without saving config");
-            } else {
-                bail!(e)
-            }
+            HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OK)?;
+            bail!(e);
         }
     };
 
