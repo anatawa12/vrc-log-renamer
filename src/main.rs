@@ -1,6 +1,6 @@
 mod config;
 
-use crate::config::read_config;
+use crate::config::{read_config, save_config};
 use anyhow::{bail, Result};
 use once_cell::race::OnceBox;
 use std::path::{Path, PathBuf};
@@ -29,6 +29,23 @@ fn main() -> Result<()> {
 
     println!("config loaded: {:#?}", config);
     println!("config serialized: \n{}", toml::to_string(&config).unwrap());
+
+
+    match save_config(&config) {
+        Ok(()) => println!("config file written to: {}", config_file_path().display()),
+        Err(e) => {
+            eprintln!("error writing config: {:?}", e);
+            let message = format!(
+                "Error writing config file: {}.\nClick OK to skip saving config.",
+                e
+            );
+            if HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OKCANCEL)? == DLGID::OK {
+                eprintln!("error ignored, continue without saving config");
+            } else {
+                bail!(e)
+            }
+        }
+    };
 
     Ok(())
 }

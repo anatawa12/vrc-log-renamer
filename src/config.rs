@@ -340,5 +340,7 @@ pub fn read_config() -> io::Result<ConfigFile> {
 }
 
 pub fn save_config(config: &ConfigFile) -> io::Result<()> {
-    fs::write(config_file_path(), toml::to_string(config)?)
+    fs::create_dir_all(config_file_path().parent().unwrap())?;
+    fs::write(config_file_path(), toml::to_string(config)
+        .map_err(|e| Error::new(ErrorKind::InvalidData, e))?)
 }
