@@ -20,7 +20,8 @@ fn copy_resources(out_dir: &Path, res: &Path) {
 
             fs::copy(res, &dotlib).unwrap();
 
-            println!("cargo:rustc-link-lib=dylib={}", dotres.to_string_lossy());
+            println!("cargo:rustc-link-search={}", out_dir.to_string_lossy());
+            println!("cargo:rustc-link-lib=static={}", "resources.res");
         }
         "gnu" => {
             let prefix = env::var("RUSTC_LINKER")
