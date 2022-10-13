@@ -1,9 +1,17 @@
 [workspace]
 members = ['.', 'proc-macros']
+
+[workspace.package]
+version = "0.1.0"
+authors = ["anatawa12"]
+
 [package]
 name = "vrc-log-renamer"
-version = "0.1.0"
 edition = "2021"
+description = "the tool to rename logs of VRChat to have date info"
+license = "GPL-3.0-or-later"
+version.workspace = true
+authors.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
