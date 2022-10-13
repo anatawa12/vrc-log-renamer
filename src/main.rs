@@ -30,6 +30,12 @@ use take_if::TakeIf;
 use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
 use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
+use winsafe_qemu::co::FOS;
+use winsafe_qemu::prelude::{
+    shell_IFileDialog, shell_IFileOpenDialog, shell_IModalWindow, shell_IShellItem,
+    GuiNativeControl, GuiParent, GuiWindowText,
+};
+use winsafe_qemu::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 
 fn main() -> Result<()> {
     let config = match read_config() {
@@ -51,7 +57,7 @@ fn main() -> Result<()> {
 
     println!("config loaded.");
 
-    MainGUI::new().run()?;
+    MainGUI::new(&config).run()?;
     //rename_main(&config)?;
 
     match save_config(&config) {
@@ -68,44 +74,115 @@ fn main() -> Result<()> {
 }
 
 struct MainGUI {
-    wnd: gui::WindowMain,   // responsible for managing the window
-    btn_hello: gui::Button, // a button
+    window: gui::WindowMain,
+    log_folder: FileSelectBlock,
 }
 
 impl MainGUI {
-    pub fn new() -> Self {
-        let wnd = gui::WindowMain::new(
+    pub fn new(config: &ConfigFile) -> Self {
+        let window = gui::WindowMain::new(
             // instantiate the window manager
             gui::WindowMainOpts {
-                title: "My window title".to_owned(),
-                size: SIZE::new(300, 150),
+                title: "VRC Log Renamer".to_owned(),
+                size: SIZE::new(400, 300),
                 ..Default::default() // leave all other options as default
             },
         );
 
-        let btn_hello = gui::Button::new(
-            &wnd, // the window manager is the parent of our button
-            gui::ButtonOpts {
-                text: "&Click me".to_owned(),
-                position: POINT::new(20, 20),
-                ..Default::default()
-            },
+        let log_folder = FileSelectBlock::new(
+            &window,
+            "Path to VRC Log Folder:".to_owned(),
+            config.source().folder().to_string_lossy().into_owned(),
+            POINT::new(10, 10),
+            380,
         );
 
-        let new_self = Self { wnd, btn_hello };
+        let new_self = Self { window, log_folder };
         new_self.events(); // attach our events
         new_self
     }
 
     pub fn run(&self) -> gui::MsgResult<i32> {
-        self.wnd.run_main(None) // simply let the window manager do the hard work
+        self.window.run_main(None) // simply let the window manager do the hard work
     }
 
     fn events(&self) {
-        self.btn_hello.on().bn_clicked({
-            let self2 = self.wnd.clone(); // clone so it can be passed into the closure
+        self.log_folder.events(&self.window, "VRC Log Folder");
+    }
+}
+
+fn add_point(a: POINT, b: POINT) -> POINT {
+    POINT::new(a.x + b.x, a.y + b.y)
+}
+
+struct FileSelectBlock {
+    label: gui::Label,
+    edit: gui::Edit,
+    select: gui::Button,
+}
+
+impl FileSelectBlock {
+    fn new(
+        window: &impl GuiParent,
+        name: String,
+        initial: String,
+        origin: POINT,
+        width: u32,
+    ) -> FileSelectBlock {
+        Self {
+            label: gui::Label::new(
+                window,
+                gui::LabelOpts {
+                    text: name,
+                    position: add_point(origin, POINT::new(0, 0)),
+                    ..Default::default()
+                },
+            ),
+            edit: gui::Edit::new(
+                window,
+                gui::EditOpts {
+                    text: initial,
+                    position: add_point(origin, POINT::new(0, 23)),
+                    width: width - 80,
+                    height: 23,
+                    ..Default::default()
+                },
+            ),
+            select: gui::Button::new(
+                window,
+                gui::ButtonOpts {
+                    text: "Select".to_owned(),
+                    position: add_point(origin, POINT::new((width - 70) as i32, 23)),
+                    width: 70,
+                    height: 23,
+                    ..Default::default()
+                },
+            ),
+        }
+    }
+
+    pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static), title: &'static str) {
+        self.select.on().bn_clicked({
+            let window = window.clone();
+            let edit = self.edit.clone();
             move || {
-                self2.hwnd().SetWindowText("Hello, world!")?;
+                let obj = CoCreateInstance::<IFileOpenDialog>(
+                    &co::CLSID::FileOpenDialog,
+                    None,
+                    co::CLSCTX::INPROC_SERVER,
+                )?;
+                obj.SetTitle(&title)?;
+                if let Some(item) = IShellItem::SHCreateItemFromParsingName(&edit.text(), None).ok()
+                {
+                    obj.SetFolder(&item)?;
+                }
+                obj.SetFileName(&edit.text())?;
+                obj.SetOptions(FOS::PICKFOLDERS)?;
+                if obj.Show(window.hwnd())? {
+                    let path = obj.GetResult()?.GetDisplayName(co::SIGDN::FILESYSPATH)?;
+                    edit.set_text(&path);
+                    println!("folder chosen: {}", path);
+                }
                 Ok(())
             }
         });
