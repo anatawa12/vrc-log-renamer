@@ -76,6 +76,7 @@ fn main() -> Result<()> {
 struct MainGUI {
     window: gui::WindowMain,
     log_folder: FileSelectBlock,
+    out_folder: FileSelectBlock,
 }
 
 impl MainGUI {
@@ -97,7 +98,19 @@ impl MainGUI {
             380,
         );
 
-        let new_self = Self { window, log_folder };
+        let out_folder = FileSelectBlock::new(
+            &window,
+            "Copy/Move Log file to:".to_owned(),
+            config.output().folder().to_string_lossy().into_owned(),
+            POINT::new(10, 66),
+            380,
+        );
+
+        let new_self = Self {
+            window,
+            log_folder,
+            out_folder,
+        };
         new_self.events(); // attach our events
         new_self
     }
@@ -108,6 +121,7 @@ impl MainGUI {
 
     fn events(&self) {
         self.log_folder.events(&self.window, "VRC Log Folder");
+        self.out_folder.events(&self.window, "Output Folder");
     }
 }
 
@@ -122,6 +136,7 @@ struct FileSelectBlock {
 }
 
 impl FileSelectBlock {
+    // height: 46
     fn new(
         window: &impl GuiParent,
         name: String,
