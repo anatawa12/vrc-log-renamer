@@ -16,6 +16,9 @@
 
 mod config;
 
+#[cfg(target_env = "gnu")]
+use winsafe_qemu as winsafe;
+
 use crate::config::{read_config, save_config, ConfigFile};
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
