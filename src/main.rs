@@ -78,7 +78,6 @@ impl MainGUI {
             // instantiate the window manager
             gui::WindowMainOpts {
                 title: "My window title".to_owned(),
-                class_icon: gui::Icon::Id(101), // load icon from resource ID 101
                 size: SIZE::new(300, 150),
                 ..Default::default() // leave all other options as default
             },

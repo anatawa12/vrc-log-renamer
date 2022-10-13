@@ -30,3 +30,6 @@ winsafe_qemu = { package="winsafe", path = "winsafe", version = "0.0.11", featur
 
 [target.'cfg(not(target_env="gnu"))'.dependencies]
 winsafe = { version = "0.0.11", features = ["gui"] }
+
+[build-dependencies]
+winres = "0.1.12"
