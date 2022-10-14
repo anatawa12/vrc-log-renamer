@@ -111,7 +111,7 @@ impl MainGUI {
 
         let source_pattern = TextInputBlock::new(
             &window,
-            "VRC Log File Pattern:".to_owned(),
+            "VRC Log File Pattern (regex):".to_owned(),
             config.source().pattern().as_str().to_owned(),
             POINT::new(10, y_pos),
             380,
@@ -140,7 +140,7 @@ impl MainGUI {
 
         let output_pattern = TextInputBlock::new(
             &window,
-            "Output File Pattern:".to_owned(),
+            "Output File Pattern (chrono's strftime):".to_owned(),
             config.output().pattern_as_string(),
             POINT::new(10, y_pos),
             380,
