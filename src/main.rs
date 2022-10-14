@@ -18,6 +18,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod config;
+mod task_managers;
 
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
@@ -41,6 +42,7 @@ use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::SHCreateItemFromParsingName;
 use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
+use crate::task_managers::register_task_manager;
 
 fn main() -> Result<()> {
     let mut args = std::env::args();
@@ -53,9 +55,12 @@ fn main() -> Result<()> {
 
             MainGUI::new(&config).run()?;
         }
-        Some("rename") => {
+        Some("rename") | Some("scheduled") => {
             let config = read_config()?;
             rename_main(&config)?;
+        }
+        Some("register_schedule") => {
+            register_task_manager()?;
         }
         Some(unknown) => {
             bail!("unknown log renamer mode: {}", unknown);
@@ -101,6 +106,8 @@ struct MainGUI {
     window: gui::WindowMain,
     inputs: GUIInputs,
     save_config: gui::Button,
+    install: gui::Button,
+    uninstall: gui::Button,
     run_renamer: gui::Button,
 }
 
@@ -122,7 +129,7 @@ impl MainGUI {
             // instantiate the window manager
             gui::WindowMainOpts {
                 title: "VRC Log Renamer".to_owned(),
-                size: SIZE::new(400, 300),
+                size: SIZE::new(400, 323),
                 ..Default::default() // leave all other options as default
             },
         );
@@ -207,11 +214,35 @@ impl MainGUI {
             },
         );
 
+        let install = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Install to Task Scheduler".to_owned(),
+                position: POINT::new(90, y_pos),
+                width: 145,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
+        let uninstall = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Uninstall from Task Scheduler".to_owned(),
+                position: POINT::new(245, y_pos),
+                width: 145,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
+        y_pos += 23 + space;
+
         let run_renamer = gui::Button::new(
             &window,
             gui::ButtonOpts {
                 text: "Execute Now".to_owned(),
-                position: POINT::new(90, y_pos),
+                position: POINT::new(10, y_pos),
                 width: 70,
                 height: 23,
                 ..Default::default()
@@ -229,6 +260,8 @@ impl MainGUI {
                 output_use_utc,
             },
             save_config,
+            install,
+            uninstall,
             run_renamer,
         };
         new_self.events(); // attach our events
@@ -253,6 +286,8 @@ impl MainGUI {
                 Ok(())
             }
         });
+        //self.install;
+        //self.uninstall;
         self.run_renamer.on().bn_clicked({
             let window = self.window.clone();
             let inputs = self.inputs.clone();
