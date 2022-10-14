@@ -21,7 +21,7 @@ use winsafe_qemu as winsafe;
 
 use crate::config::{read_config, save_config, ConfigFile};
 use anyhow::{bail, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -330,17 +330,18 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
         }
     };
     // then, assume launch time
-    let date = assume_launch_time(&mut file)?;
+    let (utc_date, local_date) = assume_launch_time(&mut file)?;
     // now, close the file.
     drop(file);
 
     // Data to copy log is ready. Now, move/copy log file.
-
     fs::create_dir_all(config.output().folder())?;
-    let dst_path = config.output().folder().join(format!(
-        "{}",
-        date.format_with_items(config.output().pattern().iter())
-    ));
+    let date_format = if config.output().utc_time() {
+        utc_date.unwrap().format_with_items(config.output().pattern().iter())
+    } else {
+        local_date.format_with_items(config.output().pattern().iter())
+    };
+    let dst_path = config.output().folder().join(format!("{}", date_format));
 
     if dst_path.exists() {
         // if there's file at dst, we assume copy/move is done
@@ -362,7 +363,7 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
     Ok(())
 }
 
-fn assume_launch_time(f: &mut fs::File) -> io::Result<DateTime<Utc>> {
+fn assume_launch_time(f: &mut fs::File) -> io::Result<(Option<DateTime<Utc>>, NaiveDateTime)> {
     // length of "%Y.%m.%d %H:%M:%S" is 19 bytes
     let mut buffer = [0 as u8; 19];
     f.read_exact(&mut buffer)?;
@@ -387,7 +388,7 @@ fn assume_launch_time(f: &mut fs::File) -> io::Result<DateTime<Utc>> {
     }
      */
 
-    Ok(time_from_log.and_local_timezone(Utc).earliest().unwrap())
+    Ok((time_from_log.and_local_timezone(Utc).earliest(), time_from_log))
 }
 
 #[cfg(windows)]
