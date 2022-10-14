@@ -9,6 +9,7 @@ use windows::Win32::System::Com::*;
 use windows::Win32::System::Ole::VariantInit;
 
 // see https://learn.microsoft.com/en-us/windows/win32/taskschd/daily-trigger-example--c---
+// see https://learn.microsoft.com/ja-jp/windows/win32/taskschd/c-c-code-example-creating-a-task-using-newworkitem
 
 const TASK_NAME: &'static str = "com.anatawa12.vrc-log-renamer";
 
@@ -29,7 +30,7 @@ pub(crate) fn register_task_manager() -> Result<()> {
         ).unwrap();
 
         let service: ITaskService = CoCreateInstance(
-            &GUID::from_u128(0x148BD52A_A2AB_11CE_B11F_00AA00530503), // CLSID_TaskScheduler as _,
+            &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
             InParam::null(),
             CLSCTX_INPROC_SERVER,
         ).unwrap();
