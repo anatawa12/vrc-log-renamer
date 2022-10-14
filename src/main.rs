@@ -96,6 +96,7 @@ impl MainGUI {
         );
 
         let mut y_pos = 10;
+        let space = 7;
 
         let log_folder = FileSelectBlock::new(
             &window,
@@ -104,7 +105,7 @@ impl MainGUI {
             POINT::new(10, y_pos),
             380,
         );
-        y_pos += FileSelectBlock::HEIGHT + 10;
+        y_pos += FileSelectBlock::HEIGHT + space;
 
         let source_pattern = TextInputBlock::new(
             &window,
@@ -113,7 +114,7 @@ impl MainGUI {
             POINT::new(10, y_pos),
             380,
         );
-        y_pos += TextInputBlock::HEIGHT + 10;
+        y_pos += TextInputBlock::HEIGHT + space;
 
         let source_keep_original = gui::CheckBox::new(
             &window,
@@ -124,7 +125,7 @@ impl MainGUI {
                 ..Default::default()
             }
         );
-        y_pos += 13 + 10;
+        y_pos += 13 + space * 2;
 
         let out_folder = FileSelectBlock::new(
             &window,
@@ -133,7 +134,7 @@ impl MainGUI {
             POINT::new(10, y_pos),
             380,
         );
-        y_pos += FileSelectBlock::HEIGHT + 10;
+        y_pos += FileSelectBlock::HEIGHT + space;
 
         let output_pattern = TextInputBlock::new(
             &window,
@@ -142,7 +143,7 @@ impl MainGUI {
             POINT::new(10, y_pos),
             380,
         );
-        y_pos += TextInputBlock::HEIGHT + 10;
+        y_pos += TextInputBlock::HEIGHT + space;
 
         let output_use_utc = gui::CheckBox::new(
             &window,
@@ -153,7 +154,7 @@ impl MainGUI {
                 ..Default::default()
             }
         );
-        y_pos += 13 + 10;
+        y_pos += 13 + space;
 
         let new_self = Self {
             window,
@@ -190,7 +191,7 @@ struct FileSelectBlock {
 }
 
 impl FileSelectBlock {
-    const HEIGHT: i32 = 36;
+    const HEIGHT: i32 = 41;
 
     fn new(
         window: &impl GuiParent,
@@ -212,7 +213,7 @@ impl FileSelectBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 13)),
+                    position: add_point(origin, POINT::new(0, 18)),
                     width: width - 80,
                     height: 23,
                     ..Default::default()
@@ -222,7 +223,7 @@ impl FileSelectBlock {
                 window,
                 gui::ButtonOpts {
                     text: "Select".to_owned(),
-                    position: add_point(origin, POINT::new((width - 70) as i32, 13)),
+                    position: add_point(origin, POINT::new((width - 70) as i32, 18)),
                     width: 70,
                     height: 23,
                     ..Default::default()
@@ -265,7 +266,7 @@ struct TextInputBlock {
 }
 
 impl TextInputBlock {
-    const HEIGHT: i32 = 36;
+    const HEIGHT: i32 = 41;
 
     fn new(
         window: &impl GuiParent,
@@ -287,7 +288,7 @@ impl TextInputBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 13)),
+                    position: add_point(origin, POINT::new(0, 18)),
                     width,
                     height: 23,
                     ..Default::default()
