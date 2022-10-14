@@ -178,7 +178,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: "Reset Config to Default".to_owned(),
-                position: POINT::new(130, y_pos),
+                position: POINT::new(140, y_pos),
                 width: 120,
                 height: 23,
                 ..Default::default()
@@ -189,7 +189,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: "Execute Now".to_owned(),
-                position: POINT::new(250, y_pos),
+                position: POINT::new(260, y_pos),
                 width: 120,
                 height: 23,
                 ..Default::default()
