@@ -23,14 +23,15 @@ mod task_managers;
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
 
-use crate::config::{read_config, save_config, ConfigFile, Source, Output, parse_pattern};
+use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
+use crate::task_managers::register_task_manager;
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
+use regex::{Error, Regex};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-use regex::{Error, Regex};
 use take_if::TakeIf;
 use winsafe::co::FOS;
 use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
@@ -42,7 +43,6 @@ use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::SHCreateItemFromParsingName;
 use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
-use crate::task_managers::register_task_manager;
 
 fn main() -> Result<()> {
     let mut args = std::env::args();
@@ -280,7 +280,9 @@ impl MainGUI {
             move || {
                 if let Some(new_config) = inputs.create_config(window.hwnd())? {
                     if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
-                        window.hwnd().MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
+                        window
+                            .hwnd()
+                            .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
                     }
                 }
                 Ok(())
@@ -296,9 +298,17 @@ impl MainGUI {
                     if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
                         if let Some(e) = rename_main(&new_config).err() {
                             eprintln!("error during rename: {:?}", e);
-                            window.hwnd().MessageBox(&format!("Error during renaming logs: {}", e), "Error!", MB::OK)?;
+                            window.hwnd().MessageBox(
+                                &format!("Error during renaming logs: {}", e),
+                                "Error!",
+                                MB::OK,
+                            )?;
                         } else {
-                            window.hwnd().MessageBox("Renaming Log Succeed!", "Succeed!", MB::OK)?;
+                            window.hwnd().MessageBox(
+                                "Renaming Log Succeed!",
+                                "Succeed!",
+                                MB::OK,
+                            )?;
                         }
                     }
                 }
@@ -320,14 +330,22 @@ impl GUIInputs {
         let source_pattern = match Regex::new(&self.source_pattern.text()) {
             Ok(pat) => pat,
             Err(_) => {
-                window.MessageBox("Cannot save the config: Log file Pattern is not valid", "Error", MB::OK)?;
+                window.MessageBox(
+                    "Cannot save the config: Log file Pattern is not valid",
+                    "Error",
+                    MB::OK,
+                )?;
                 return Ok(None);
             }
         };
         let output_pattern = match parse_pattern(&self.output_pattern.text()) {
             Some(pat) => pat,
             None => {
-                window.MessageBox("Cannot save the config: Output File Pattern is not valid", "Error", MB::OK)?;
+                window.MessageBox(
+                    "Cannot save the config: Output File Pattern is not valid",
+                    "Error",
+                    MB::OK,
+                )?;
                 return Ok(None);
             }
         };
@@ -341,7 +359,7 @@ impl GUIInputs {
                 self.output_folder.text().into(),
                 output_pattern,
                 self.output_use_utc.is_checked(),
-            )
+            ),
         )))
     }
 }

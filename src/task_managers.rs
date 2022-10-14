@@ -1,8 +1,8 @@
-use anyhow::{Result};
-use windows::core::{Interface, InParam, PWSTR, HSTRING, BSTR, GUID};
+use anyhow::Result;
+use windows::core::{InParam, Interface, BSTR, GUID, HSTRING, PWSTR};
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
-use windows::Win32::System::TaskScheduler::*;
 use windows::Win32::System::Com::*;
+use windows::Win32::System::TaskScheduler::*;
 
 // see https://learn.microsoft.com/en-us/windows/win32/taskschd/daily-trigger-example--c---
 // see https://learn.microsoft.com/ja-jp/windows/win32/taskschd/c-c-code-example-creating-a-task-using-newworkitem
@@ -22,16 +22,25 @@ pub(crate) fn register_task_manager() -> Result<()> {
             RPC_C_IMP_LEVEL_IMPERSONATE,
             None,
             EOLE_AUTHENTICATION_CAPABILITIES(0),
-            None
-        ).unwrap();
+            None,
+        )
+        .unwrap();
 
         let service: ITaskService = CoCreateInstance(
             &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
             InParam::null(),
             CLSCTX_INPROC_SERVER,
-        ).unwrap();
+        )
+        .unwrap();
 
-        service.Connect(InParam::null(), InParam::null(), InParam::null(), InParam::null()).unwrap();
+        service
+            .Connect(
+                InParam::null(),
+                InParam::null(),
+                InParam::null(),
+                InParam::null(),
+            )
+            .unwrap();
 
         let root_folder: ITaskFolder = service.GetFolder(&r"\".into()).unwrap();
 
@@ -43,24 +52,48 @@ pub(crate) fn register_task_manager() -> Result<()> {
 
         task.RegistrationInfo()?.SetAuthor(&"anatawa12".into())?;
 
-        let daily_trigger: IDailyTrigger = task.Triggers().unwrap().Create(TASK_TRIGGER_DAILY).unwrap().cast::<IDailyTrigger>().unwrap();
+        let daily_trigger: IDailyTrigger = task
+            .Triggers()
+            .unwrap()
+            .Create(TASK_TRIGGER_DAILY)
+            .unwrap()
+            .cast::<IDailyTrigger>()
+            .unwrap();
         daily_trigger.SetId(&"Trigger1".into()).unwrap();
-        daily_trigger.SetStartBoundary(&"2022-10-14T00:00:00".into()).unwrap();
+        daily_trigger
+            .SetStartBoundary(&"2022-10-14T00:00:00".into())
+            .unwrap();
         daily_trigger.SetDaysInterval(1).unwrap();
 
-        let action: IExecAction = task.Actions().unwrap().Create(TASK_ACTION_EXEC).unwrap().cast().unwrap();
-        action.SetPath(&std::env::current_exe().unwrap().to_string_lossy().as_ref().into()).unwrap();
+        let action: IExecAction = task
+            .Actions()
+            .unwrap()
+            .Create(TASK_ACTION_EXEC)
+            .unwrap()
+            .cast()
+            .unwrap();
+        action
+            .SetPath(
+                &std::env::current_exe()
+                    .unwrap()
+                    .to_string_lossy()
+                    .as_ref()
+                    .into(),
+            )
+            .unwrap();
         action.SetArguments(&"scheduled".into()).unwrap();
 
-        let _task: IRegisteredTask = root_folder.RegisterTaskDefinition(
-            &TASK_NAME.into(),
-            &task,
-            TASK_CREATE_OR_UPDATE.0,
-            &VARIANT::default(),
-            &VARIANT::default(),
-            TASK_LOGON_INTERACTIVE_TOKEN,
-            &VARIANT::default(),
-        ).unwrap();
+        let _task: IRegisteredTask = root_folder
+            .RegisterTaskDefinition(
+                &TASK_NAME.into(),
+                &task,
+                TASK_CREATE_OR_UPDATE.0,
+                &VARIANT::default(),
+                &VARIANT::default(),
+                TASK_LOGON_INTERACTIVE_TOKEN,
+                &VARIANT::default(),
+            )
+            .unwrap();
     }
     Ok(())
 }
