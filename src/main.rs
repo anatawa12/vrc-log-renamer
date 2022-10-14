@@ -281,38 +281,60 @@ impl MainGUI {
             let window = self.window.clone();
             let inputs = self.inputs.clone();
             move || {
-                if let Some(new_config) = inputs.create_config(window.hwnd())? {
-                    if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
-                        window
-                            .hwnd()
-                            .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
-                    }
+                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
+                    window
+                        .hwnd()
+                        .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
                 }
                 Ok(())
             }
         });
-        //self.install;
-        //self.uninstall;
+        self.install.on().bn_clicked({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
+                    register_task_manager()?;
+                    window.hwnd().MessageBox(
+                        "Installing VRC Log Manager from Task Scheduler succeed!",
+                        "Succeed!",
+                        MB::OK,
+                    )?;
+                }
+                Ok(())
+            }
+        });
+        self.uninstall.on().bn_clicked({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
+                    unregister_task_manager()?;
+                    window.hwnd().MessageBox(
+                        "Uninstalling VRC Log Manager from Task Scheduler succeed!",
+                        "Succeed!",
+                        MB::OK,
+                    )?;
+                }
+                Ok(())
+            }
+        });
         self.run_renamer.on().bn_clicked({
             let window = self.window.clone();
             let inputs = self.inputs.clone();
             move || {
-                if let Some(new_config) = inputs.create_config(window.hwnd())? {
-                    if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
-                        if let Some(e) = rename_main(&new_config).err() {
-                            eprintln!("error during rename: {:?}", e);
-                            window.hwnd().MessageBox(
-                                &format!("Error during renaming logs: {}", e),
-                                "Error!",
-                                MB::OK,
-                            )?;
-                        } else {
-                            window.hwnd().MessageBox(
-                                "Renaming Log Succeed!",
-                                "Succeed!",
-                                MB::OK,
-                            )?;
-                        }
+                if let Some(Some(new_config)) = inputs.create_save_config(window.hwnd()).ok() {
+                    if let Some(e) = rename_main(&new_config).err() {
+                        eprintln!("error during rename: {:?}", e);
+                        window.hwnd().MessageBox(
+                            &format!("Error during renaming logs: {}", e),
+                            "Error!",
+                            MB::OK,
+                        )?;
+                    } else {
+                        window
+                            .hwnd()
+                            .MessageBox("Renaming Log Succeed!", "Succeed!", MB::OK)?;
                     }
                 }
                 Ok(())
@@ -364,6 +386,15 @@ impl GUIInputs {
                 self.output_use_utc.is_checked(),
             ),
         )))
+    }
+
+    pub(crate) fn create_save_config(&self, hwnd: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
+        if let Some(new_config) = self.create_config(hwnd)? {
+            if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
+                return Ok(Some(new_config));
+            }
+        }
+        Ok(None)
     }
 }
 
