@@ -75,9 +75,9 @@ fn main() -> Result<()> {
 
 struct MainGUI {
     window: gui::WindowMain,
-    log_folder: FileSelectBlock,
+    source_folder: FileSelectBlock,
     source_pattern: TextInputBlock,
-    out_folder: FileSelectBlock,
+    output_folder: FileSelectBlock,
     output_pattern: TextInputBlock,
 }
 
@@ -126,9 +126,9 @@ impl MainGUI {
 
         let new_self = Self {
             window,
-            log_folder,
+            source_folder: log_folder,
             source_pattern,
-            out_folder,
+            output_folder: out_folder,
             output_pattern,
         };
         new_self.events(); // attach our events
@@ -140,9 +140,9 @@ impl MainGUI {
     }
 
     fn events(&self) {
-        self.log_folder.events(&self.window, "VRC Log Folder");
+        self.source_folder.events(&self.window, "VRC Log Folder");
         self.source_pattern.events();
-        self.out_folder.events(&self.window, "Output Folder");
+        self.output_folder.events(&self.window, "Output Folder");
     }
 }
 
