@@ -1,6 +1,6 @@
 use std::mem::{size_of, zeroed};
 use anyhow::{bail, Result};
-use windows::core::{Interface, InParam, IUnknown, PWSTR, HSTRING, BSTR};
+use windows::core::{Interface, InParam, IUnknown, PWSTR, HSTRING, BSTR, GUID};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Security::Credentials::*;
 use windows::Win32::Security::PSECURITY_DESCRIPTOR;
@@ -29,7 +29,7 @@ pub(crate) fn register_task_manager() -> Result<()> {
         ).unwrap();
 
         let service: ITaskService = CoCreateInstance(
-            &CLSID_CTaskScheduler as _,
+            &GUID::from_u128(0x148BD52A_A2AB_11CE_B11F_00AA00530503), // CLSID_TaskScheduler as _,
             InParam::null(),
             CLSCTX_INPROC_SERVER,
         ).unwrap();
