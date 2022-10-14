@@ -48,7 +48,7 @@ macro_rules! default_fns {
     };
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct ConfigFile {
     source: Source,
     output: Output,
@@ -79,7 +79,7 @@ impl ConfigFile {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Source {
     #[serde(
         skip_serializing_if = "Source::is_folder_default",
@@ -150,7 +150,7 @@ impl Default for Source {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct Output {
     #[serde(
         skip_serializing_if = "Output::is_folder_default",
