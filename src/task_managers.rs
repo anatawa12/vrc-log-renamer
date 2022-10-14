@@ -20,26 +20,26 @@ pub(crate) fn register_task_manager() -> Result<()> {
             CLSCTX_INPROC_SERVER,
         )?;
 
-        service.Connect(InParam::null(), InParam::null(), InParam::null(), InParam::null())?;
+        service.Connect(InParam::null(), InParam::null(), InParam::null(), InParam::null()).unwrap();
 
-        let root_folder: ITaskFolder = service.GetFolder(&"/".into())?;
+        let root_folder: ITaskFolder = service.GetFolder(&"/".into()).unwrap();
 
         // delete if exists
         root_folder.DeleteTask(&TASK_NAME.into(), 0).ok();
 
-        let task: ITaskDefinition = service.NewTask(0)?;
+        let task: ITaskDefinition = service.NewTask(0).unwrap();
         drop(service);
 
         task.RegistrationInfo()?.SetAuthor(&"anatawa12".into())?;
 
-        let daily_trigger: IDailyTrigger = task.Triggers()?.Create(TASK_TRIGGER_DAILY)?.cast::<IDailyTrigger>()?;
-        daily_trigger.SetId(&"Trigger1".into())?;
-        daily_trigger.SetStartBoundary(&"2022-10-14T00:00:00".into())?;
-        daily_trigger.SetDaysInterval(1)?;
+        let daily_trigger: IDailyTrigger = task.Triggers().unwrap().Create(TASK_TRIGGER_DAILY).unwrap().cast::<IDailyTrigger>().unwrap();
+        daily_trigger.SetId(&"Trigger1".into()).unwrap();
+        daily_trigger.SetStartBoundary(&"2022-10-14T00:00:00".into()).unwrap();
+        daily_trigger.SetDaysInterval(1).unwrap();
 
-        let action: IExecAction = (task.Actions()? as IActionCollection).Create(TASK_ACTION_EXEC)?.cast()?;
-        action.SetPath(&std::env::current_exe().unwrap().to_string_lossy().as_ref().into())?;
-        action.SetArguments(&"scheduled".into())?;
+        let action: IExecAction = task.Actions().unwrap().Create(TASK_ACTION_EXEC).unwrap().cast().unwrap();
+        action.SetPath(&std::env::current_exe().unwrap().to_string_lossy().as_ref().into()).unwrap();
+        action.SetArguments(&"scheduled".into()).unwrap();
 
         let info: CREDUI_INFOW = CREDUI_INFOW {
             cbSize: size_of::<CREDUI_INFOW>() as _,
@@ -76,7 +76,7 @@ pub(crate) fn register_task_manager() -> Result<()> {
             &variant(BSTR::from_raw(&password[0])),
             TASK_LOGON_PASSWORD,
             &variant(BSTR::from("")),
-        )?;
+        ).unwrap();
     }
     Ok(())
 }
