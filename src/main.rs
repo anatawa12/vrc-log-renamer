@@ -71,6 +71,7 @@ fn rename_main(config: &ConfigFile) -> Result<()> {
             .pattern()
             .is_match(&entry.file_name().to_string_lossy())
         {
+            println!("{} matches pattern. checking", entry.path().display());
             if let Some(err) = move_log_file(config, &entry.path()).err() {
                 eprintln!("error moving '{}': {}", entry.path().display(), err);
             }
