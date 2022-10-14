@@ -109,9 +109,9 @@ struct MainGUI {
     window: gui::WindowMain,
     inputs: GUIInputs,
     save_config: gui::Button,
+    run_renamer: gui::Button,
     install: gui::Button,
     uninstall: gui::Button,
-    run_renamer: gui::Button,
 }
 
 #[derive(Clone)]
@@ -211,18 +211,31 @@ impl MainGUI {
             gui::ButtonOpts {
                 text: "Save Config".to_owned(),
                 position: POINT::new(10, y_pos),
-                width: 70,
+                width: 185,
                 height: 23,
                 ..Default::default()
             },
         );
 
+        let run_renamer = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Execute Now".to_owned(),
+                position: POINT::new(205, y_pos),
+                width: 185,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
+        y_pos += 23 + space;
+
         let install = gui::Button::new(
             &window,
             gui::ButtonOpts {
                 text: "Install to Task Scheduler".to_owned(),
-                position: POINT::new(90, y_pos),
-                width: 145,
+                position: POINT::new(10, y_pos),
+                width: 185,
                 height: 23,
                 ..Default::default()
             },
@@ -232,21 +245,8 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: "Uninstall from Task Scheduler".to_owned(),
-                position: POINT::new(245, y_pos),
-                width: 145,
-                height: 23,
-                ..Default::default()
-            },
-        );
-
-        y_pos += 23 + space;
-
-        let run_renamer = gui::Button::new(
-            &window,
-            gui::ButtonOpts {
-                text: "Execute Now".to_owned(),
-                position: POINT::new(10, y_pos),
-                width: 70,
+                position: POINT::new(205, y_pos),
+                width: 185,
                 height: 23,
                 ..Default::default()
             },
