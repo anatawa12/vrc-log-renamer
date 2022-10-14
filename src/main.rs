@@ -24,7 +24,7 @@ mod task_managers;
 use winsafe_qemu as winsafe;
 
 use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
-use crate::task_managers::register_task_manager;
+use crate::task_managers::{register_task_manager, unregister_task_manager};
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
@@ -61,6 +61,9 @@ fn main() -> Result<()> {
         }
         Some("register_schedule") => {
             register_task_manager()?;
+        }
+        Some("unregister_schedule") => {
+            unregister_task_manager()?;
         }
         Some(unknown) => {
             bail!("unknown log renamer mode: {}", unknown);

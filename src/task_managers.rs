@@ -24,14 +24,14 @@ pub(crate) fn register_task_manager() -> Result<()> {
             EOLE_AUTHENTICATION_CAPABILITIES(0),
             None,
         )
-        .unwrap();
+            .unwrap();
 
         let service: ITaskService = CoCreateInstance(
             &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
             InParam::null(),
             CLSCTX_INPROC_SERVER,
         )
-        .unwrap();
+            .unwrap();
 
         service
             .Connect(
@@ -94,6 +94,47 @@ pub(crate) fn register_task_manager() -> Result<()> {
                 &VARIANT::default(),
             )
             .unwrap();
+    }
+    Ok(())
+}
+
+pub(crate) fn unregister_task_manager() -> Result<()> {
+    unsafe {
+        CoInitializeEx(None, COINIT_MULTITHREADED)?;
+
+        CoInitializeSecurity(
+            PSECURITY_DESCRIPTOR::default(),
+            -1,
+            None,
+            None,
+            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+            RPC_C_IMP_LEVEL_IMPERSONATE,
+            None,
+            EOLE_AUTHENTICATION_CAPABILITIES(0),
+            None,
+        )
+            .unwrap();
+
+        let service: ITaskService = CoCreateInstance(
+            &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
+            InParam::null(),
+            CLSCTX_INPROC_SERVER,
+        )
+            .unwrap();
+
+        service
+            .Connect(
+                InParam::null(),
+                InParam::null(),
+                InParam::null(),
+                InParam::null(),
+            )
+            .unwrap();
+
+        let root_folder: ITaskFolder = service.GetFolder(&r"\".into()).unwrap();
+
+        // delete if exists
+        root_folder.DeleteTask(&TASK_NAME.into(), 0).ok();
     }
     Ok(())
 }
