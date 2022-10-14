@@ -37,7 +37,7 @@ pub(crate) fn register_task_manager() -> Result<()> {
 
         service.Connect(InParam::null(), InParam::null(), InParam::null(), InParam::null()).unwrap();
 
-        let root_folder: ITaskFolder = service.GetFolder(&"/".into()).unwrap();
+        let root_folder: ITaskFolder = service.GetFolder(&r"\".into()).unwrap();
 
         // delete if exists
         root_folder.DeleteTask(&TASK_NAME.into(), 0).ok();
