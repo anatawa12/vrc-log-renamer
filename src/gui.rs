@@ -3,19 +3,18 @@ use winsafe_qemu as winsafe;
 
 use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
 use crate::task_managers::{register_task_manager, unregister_task_manager};
+use crate::{config_file_path, rename_main};
 use anyhow::{bail, Result};
-use regex::{Regex};
+use regex::Regex;
 use winsafe::co::FOS;
 use winsafe::co::{DLGID, MB};
 use winsafe::prelude::{
-    shell_IFileDialog, shell_IModalWindow, shell_IShellItem,
-    GuiParent, GuiWindowText,
+    shell_IFileDialog, shell_IModalWindow, shell_IShellItem, GuiParent, GuiWindowText,
 };
 use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::SHCreateItemFromParsingName;
 use winsafe::{co, CoCreateInstance, IFileOpenDialog};
 use winsafe::{gui, HWND, POINT, SIZE};
-use crate::{config_file_path, rename_main};
 
 pub fn gui_main() -> Result<()> {
     let config = read_config_with_error_dialog()?;
@@ -313,12 +312,18 @@ impl GUIInputs {
     }
 
     pub fn load_values_from_config(&self, config: &ConfigFile) {
-        self.source_folder.set_text(config.source().folder().to_string_lossy().as_ref());
-        self.source_pattern.set_text(config.source().pattern().as_str());
-        self.source_keep_original.set_check_state(check_state(config.source().keep_old()));
-        self.output_folder.set_text(config.output().folder().to_string_lossy().as_ref());
-        self.output_pattern.set_text(config.output().pattern_as_string().as_str());
-        self.output_use_utc.set_check_state(check_state(config.output().utc_time()));
+        self.source_folder
+            .set_text(config.source().folder().to_string_lossy().as_ref());
+        self.source_pattern
+            .set_text(config.source().pattern().as_str());
+        self.source_keep_original
+            .set_check_state(check_state(config.source().keep_old()));
+        self.output_folder
+            .set_text(config.output().folder().to_string_lossy().as_ref());
+        self.output_pattern
+            .set_text(config.output().pattern_as_string().as_str());
+        self.output_use_utc
+            .set_check_state(check_state(config.output().utc_time()));
     }
 
     pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {

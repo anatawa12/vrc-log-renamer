@@ -18,8 +18,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod config;
-mod task_managers;
 mod gui;
+mod task_managers;
 
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
@@ -34,7 +34,7 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 use take_if::TakeIf;
 use winsafe::co::{KF, KNOWNFOLDERID};
-use winsafe::{SHGetKnownFolderPath};
+use winsafe::SHGetKnownFolderPath;
 
 fn main() -> Result<()> {
     let mut args = std::env::args();
