@@ -1,3 +1,4 @@
+use std::thread::sleep;
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
 
@@ -8,9 +9,7 @@ use anyhow::{bail, Result};
 use regex::Regex;
 use winsafe::co::FOS;
 use winsafe::co::{DLGID, MB};
-use winsafe::prelude::{
-    shell_IFileDialog, shell_IModalWindow, shell_IShellItem, GuiParent, GuiWindowText,
-};
+use winsafe::prelude::*;
 use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::SHCreateItemFromParsingName;
 use winsafe::{co, CoCreateInstance, IFileOpenDialog};
@@ -250,6 +249,21 @@ impl MainGUI {
 
     fn events(&self) {
         self.inputs.events(&self.window);
+        self.window.on().wm_close({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if window
+                    .hwnd()
+                    .MessageBox("Save Config before Close?", "Save?", MB::YESNO)?
+                    == DLGID::YES
+                {
+                    inputs.create_save_config(window.hwnd())?;
+                }
+                window.hwnd().DestroyWindow()?;
+                Ok(())
+            }
+        });
         self.save_config.on().bn_clicked({
             let window = self.window.clone();
             let inputs = self.inputs.clone();
@@ -270,7 +284,8 @@ impl MainGUI {
                     "Are you sure want to reset config to default?\nYou cannot undo this operation",
                     "Confirm?",
                     MB::OKCANCEL,
-                )? == DLGID::OK {
+                )? == DLGID::OK
+                {
                     inputs.load_values_from_config(&Default::default());
                 }
                 Ok(())
