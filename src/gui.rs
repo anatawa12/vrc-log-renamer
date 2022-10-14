@@ -177,7 +177,7 @@ impl MainGUI {
         let reset_to_default = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Reset Config to Default".to_owned(),
+                text: "Reset Config".to_owned(),
                 position: POINT::new(140, y_pos),
                 width: 120,
                 height: 23,
