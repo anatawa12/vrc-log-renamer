@@ -3,6 +3,8 @@ use std::cell::UnsafeCell;
 use winsafe_qemu as winsafe;
 
 use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
+use crate::i18n::init_i18n;
+use crate::i18n::Message::*;
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use crate::{config_file_path, rename_main};
 use anyhow::{bail, Result};
@@ -16,6 +18,8 @@ use winsafe::{co, CoCreateInstance, IFileOpenDialog};
 use winsafe::{gui, HWND, POINT, SIZE};
 
 pub fn gui_main() -> Result<()> {
+    init_i18n();
+
     let config = read_config_with_error_dialog()?;
 
     println!("config loaded.");
@@ -33,10 +37,17 @@ fn read_config_with_error_dialog() -> Result<ConfigFile> {
         Err(e) => {
             eprintln!("error reading config: {:?}", e);
             let message = format!(
-                "Error reading config file: {}.\nClick OK to discord config & continue.",
-                e
+                "{}: {}.\n{}",
+                m!(ErrorReadingConfigFile),
+                e,
+                m!(ClickOKToDiscordAndContinue)
             );
-            if HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OKCANCEL)? == DLGID::OK {
+            if HWND::GetDesktopWindow().MessageBox(
+                &message,
+                m!(ErrorLoadingConfigFileCaption),
+                MB::OKCANCEL,
+            )? == DLGID::OK
+            {
                 eprintln!("error ignored, continue with default config");
                 Ok(Default::default())
             } else {
@@ -51,8 +62,12 @@ fn save_config_with_error_dialog(config: &ConfigFile) -> Result<()> {
         Ok(()) => println!("config file written to: {}", config_file_path().display()),
         Err(e) => {
             eprintln!("error writing config: {:?}", e);
-            let message = format!("Error writing config file: {}.", e);
-            HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OK)?;
+            let message = format!("{}: {}.", m!(ErrorWritingConfigFileText), e);
+            HWND::GetDesktopWindow().MessageBox(
+                &message,
+                m!(ErrorWritingConfigFileCaption),
+                MB::OK,
+            )?;
             bail!(e);
         }
     }
@@ -106,7 +121,7 @@ impl MainGUI {
 
         let source_folder = FileSelectBlock::new(
             &window,
-            "Path to VRC Log Folder:".to_owned(),
+            m!(PathToVrcLogFolder).to_owned(),
             String::new(),
             POINT::new(10, y_pos),
             380,
@@ -115,7 +130,7 @@ impl MainGUI {
 
         let source_pattern = TextInputBlock::new(
             &window,
-            "VRC Log File Pattern (regex):".to_owned(),
+            m!(VrcLogFilePattern).to_owned(),
             String::new(),
             POINT::new(10, y_pos),
             380,
@@ -125,7 +140,7 @@ impl MainGUI {
         let source_keep_original = gui::CheckBox::new(
             &window,
             gui::CheckBoxOpts {
-                text: "Keep Original".to_owned(),
+                text: m!(KeepOriginal).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
                 position: POINT::new(10, y_pos),
                 ..Default::default()
@@ -135,7 +150,7 @@ impl MainGUI {
 
         let output_folder = FileSelectBlock::new(
             &window,
-            "Copy/Move Log file to:".to_owned(),
+            m!(CopyMoveLogFileTo).to_owned(),
             String::new(),
             POINT::new(10, y_pos),
             380,
@@ -144,7 +159,7 @@ impl MainGUI {
 
         let output_pattern = TextInputBlock::new(
             &window,
-            "Output File Pattern (chrono's strftime):".to_owned(),
+            m!(OutputFilePattern).to_owned(),
             String::new(),
             POINT::new(10, y_pos),
             380,
@@ -154,7 +169,7 @@ impl MainGUI {
         let output_use_utc = gui::CheckBox::new(
             &window,
             gui::CheckBoxOpts {
-                text: "Use UTC Time for log name".to_owned(),
+                text: m!(UseUcForFileName).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
                 position: POINT::new(10, y_pos),
                 ..Default::default()
@@ -165,7 +180,7 @@ impl MainGUI {
         let save_config = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Save Config".to_owned(),
+                text: m!(SaveConfig).to_owned(),
                 position: POINT::new(10, y_pos),
                 width: 120,
                 height: 23,
@@ -176,7 +191,7 @@ impl MainGUI {
         let reset_to_default = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Reset Config".to_owned(),
+                text: m!(ResetConfig).to_string(),
                 position: POINT::new(140, y_pos),
                 width: 120,
                 height: 23,
@@ -187,7 +202,7 @@ impl MainGUI {
         let run_renamer = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Execute Now".to_owned(),
+                text: m!(ExecuteNow).to_owned(),
                 position: POINT::new(270, y_pos),
                 width: 120,
                 height: 23,
@@ -200,7 +215,7 @@ impl MainGUI {
         let install = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Install to Task Scheduler".to_owned(),
+                text: m!(InstallToTaskScheduler).to_owned(),
                 position: POINT::new(10, y_pos),
                 width: 185,
                 height: 23,
@@ -211,7 +226,7 @@ impl MainGUI {
         let uninstall = gui::Button::new(
             &window,
             gui::ButtonOpts {
-                text: "Uninstall from Task Scheduler".to_owned(),
+                text: m!(UninstallFromTaskScheduler).to_owned(),
                 position: POINT::new(205, y_pos),
                 width: 185,
                 height: 23,
@@ -265,10 +280,11 @@ impl MainGUI {
             let window = self.window.clone();
             let inputs = self.inputs.clone();
             move || {
-                if window
-                    .hwnd()
-                    .MessageBox("Save Config before Close?", "Save?", MB::YESNO)?
-                    == DLGID::YES
+                if window.hwnd().MessageBox(
+                    m!(SaveBeforeCloseText),
+                    m!(SaveBeforeCloseCaption),
+                    MB::YESNO,
+                )? == DLGID::YES
                 {
                     inputs.create_save_config(window.hwnd())?;
                 }
@@ -281,9 +297,11 @@ impl MainGUI {
             let inputs = self.inputs.clone();
             move || {
                 if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
-                    window
-                        .hwnd()
-                        .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
+                    window.hwnd().MessageBox(
+                        m!(ConfigSavedText),
+                        m!(ConfigSavedCaption),
+                        MB::OK,
+                    )?;
                 }
                 Ok(())
             }
@@ -293,8 +311,8 @@ impl MainGUI {
             let inputs = self.inputs.clone();
             move || {
                 if window.hwnd().MessageBox(
-                    "Are you sure want to reset config to default?\nYou cannot undo this operation",
-                    "Confirm?",
+                    m!(ResetConfirmText),
+                    m!(ResetConfirmCaption),
                     MB::OKCANCEL,
                 )? == DLGID::OK
                 {
@@ -310,8 +328,8 @@ impl MainGUI {
                 if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
                     register_task_manager()?;
                     window.hwnd().MessageBox(
-                        "Installing VRC Log Manager from Task Scheduler succeed!",
-                        "Succeed!",
+                        m!(InstallSucceedText),
+                        m!(InstallSucceedCaption),
                         MB::OK,
                     )?;
                 }
@@ -325,8 +343,8 @@ impl MainGUI {
                 if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
                     unregister_task_manager()?;
                     window.hwnd().MessageBox(
-                        "Uninstalling VRC Log Manager from Task Scheduler succeed!",
-                        "Succeed!",
+                        m!(UninstallSucceedText),
+                        m!(UninstallSucceedCaption),
                         MB::OK,
                     )?;
                 }
@@ -341,14 +359,16 @@ impl MainGUI {
                     if let Some(e) = rename_main(&new_config).err() {
                         eprintln!("error during rename: {:?}", e);
                         window.hwnd().MessageBox(
-                            &format!("Error during renaming logs: {}", e),
-                            "Error!",
+                            &format!("{}: {}", m!(ErrorInRenameText), e),
+                            m!(ErrorInRenameCaption),
                             MB::OK,
                         )?;
                     } else {
-                        window
-                            .hwnd()
-                            .MessageBox("Renaming Log Succeed!", "Succeed!", MB::OK)?;
+                        window.hwnd().MessageBox(
+                            m!(RenameSucceedText),
+                            m!(RenameSucceedCaption),
+                            MB::OK,
+                        )?;
                     }
                 }
                 Ok(())
@@ -359,9 +379,11 @@ impl MainGUI {
 
 impl GUIInputs {
     pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static)) {
-        self.source_folder.events(window, "VRC Log Folder");
+        self.source_folder
+            .events(window, m!(SourceFolderChooserCaption));
         self.source_pattern.events();
-        self.output_folder.events(window, "Output Folder");
+        self.output_folder
+            .events(window, m!(OutputFolderChooserCaption));
         self.output_pattern.events();
     }
 
@@ -385,8 +407,8 @@ impl GUIInputs {
             Ok(pat) => pat,
             Err(_) => {
                 window.MessageBox(
-                    "Cannot save the config: Log file Pattern is not valid",
-                    "Error",
+                    m!(InvalidSourcePatternText),
+                    m!(InvalidSourcePatternCaption),
                     MB::OK,
                 )?;
                 return Ok(None);
@@ -396,8 +418,8 @@ impl GUIInputs {
             Some(pat) => pat,
             None => {
                 window.MessageBox(
-                    "Cannot save the config: Output File Pattern is not valid",
-                    "Error",
+                    m!(InvalidOutputPatternText),
+                    m!(InvalidOutputPatternCaption),
                     MB::OK,
                 )?;
                 return Ok(None);
@@ -470,7 +492,7 @@ impl FileSelectBlock {
             select: gui::Button::new(
                 window,
                 gui::ButtonOpts {
-                    text: "Select".to_owned(),
+                    text: m!(SelectInGuiButtonText).to_owned(),
                     position: add_point(origin, POINT::new((width - 70) as i32, TEXT_HEIGHT)),
                     width: 70,
                     height: 23,

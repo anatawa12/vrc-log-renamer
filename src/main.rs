@@ -17,6 +17,8 @@
 // make this file gui app for release build
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[macro_use]
+mod i18n;
 mod config;
 mod gui;
 mod task_managers;
