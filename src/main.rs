@@ -36,6 +36,7 @@ use winsafe::prelude::{
     GuiNativeControl, GuiParent, GuiWindowText,
 };
 use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
+use winsafe::SHCreateItemFromParsingName;
 
 fn main() -> Result<()> {
     let config = match read_config() {
@@ -208,7 +209,7 @@ impl FileSelectBlock {
                     co::CLSCTX::INPROC_SERVER,
                 )?;
                 obj.SetTitle(&title)?;
-                if let Some(item) = IShellItem::SHCreateItemFromParsingName(&edit.text(), None).ok()
+                if let Some(item) = SHCreateItemFromParsingName(&edit.text(), None).ok()
                 {
                     obj.SetFolder(&item)?;
                 }
