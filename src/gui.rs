@@ -64,6 +64,7 @@ struct MainGUI {
     window: gui::WindowMain,
     inputs: GUIInputs,
     save_config: gui::Button,
+    reset_to_default: gui::Button,
     run_renamer: gui::Button,
     install: gui::Button,
     uninstall: gui::Button,
@@ -167,7 +168,18 @@ impl MainGUI {
             gui::ButtonOpts {
                 text: "Save Config".to_owned(),
                 position: POINT::new(10, y_pos),
-                width: 185,
+                width: 120,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
+        let reset_to_default = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Reset Config to Default".to_owned(),
+                position: POINT::new(130, y_pos),
+                width: 120,
                 height: 23,
                 ..Default::default()
             },
@@ -177,8 +189,8 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: "Execute Now".to_owned(),
-                position: POINT::new(205, y_pos),
-                width: 185,
+                position: POINT::new(250, y_pos),
+                width: 120,
                 height: 23,
                 ..Default::default()
             },
@@ -219,9 +231,10 @@ impl MainGUI {
                 output_use_utc,
             },
             save_config,
+            reset_to_default,
+            run_renamer,
             install,
             uninstall,
-            run_renamer,
         };
         new_self.events(); // attach our events
         new_self
@@ -245,6 +258,20 @@ impl MainGUI {
                     window
                         .hwnd()
                         .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
+                }
+                Ok(())
+            }
+        });
+        self.reset_to_default.on().bn_clicked({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if window.hwnd().MessageBox(
+                    "Are you sure want to reset config to default?\nYou cannot undo this operation",
+                    "Confirm?",
+                    MB::OKCANCEL,
+                )? == DLGID::OK {
+                    inputs.load_values_from_config(&Default::default());
                 }
                 Ok(())
             }
