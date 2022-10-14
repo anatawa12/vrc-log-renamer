@@ -22,7 +22,9 @@ pub fn gui_main() -> Result<()> {
 
     println!("config loaded.");
 
-    MainGUI::new(&config).run()?;
+    let gui = MainGUI::new();
+    gui.load_values_from_config(&config);
+    gui.run()?;
 
     Ok(())
 }
@@ -80,8 +82,17 @@ struct GUIInputs {
 
 const TEXT_HEIGHT: i32 = 18;
 
+#[inline(always)]
+fn check_state(checked: bool) -> gui::CheckState {
+    if checked {
+        gui::CheckState::Checked
+    } else {
+        gui::CheckState::Unchecked
+    }
+}
+
 impl MainGUI {
-    pub fn new(config: &ConfigFile) -> Self {
+    pub fn new() -> Self {
         let window = gui::WindowMain::new(
             // instantiate the window manager
             gui::WindowMainOpts {
@@ -97,7 +108,7 @@ impl MainGUI {
         let source_folder = FileSelectBlock::new(
             &window,
             "Path to VRC Log Folder:".to_owned(),
-            config.source().folder().to_string_lossy().into_owned(),
+            String::new(),
             POINT::new(10, y_pos),
             380,
         );
@@ -106,7 +117,7 @@ impl MainGUI {
         let source_pattern = TextInputBlock::new(
             &window,
             "VRC Log File Pattern (regex):".to_owned(),
-            config.source().pattern().as_str().to_owned(),
+            String::new(),
             POINT::new(10, y_pos),
             380,
         );
@@ -116,11 +127,7 @@ impl MainGUI {
             &window,
             gui::CheckBoxOpts {
                 text: "Keep Original".to_owned(),
-                check_state: if config.source().keep_old() {
-                    gui::CheckState::Checked
-                } else {
-                    gui::CheckState::Unchecked
-                },
+                check_state: gui::CheckState::Indeterminate,
                 position: POINT::new(10, y_pos),
                 ..Default::default()
             },
@@ -130,7 +137,7 @@ impl MainGUI {
         let output_folder = FileSelectBlock::new(
             &window,
             "Copy/Move Log file to:".to_owned(),
-            config.output().folder().to_string_lossy().into_owned(),
+            String::new(),
             POINT::new(10, y_pos),
             380,
         );
@@ -139,7 +146,7 @@ impl MainGUI {
         let output_pattern = TextInputBlock::new(
             &window,
             "Output File Pattern (chrono's strftime):".to_owned(),
-            config.output().pattern_as_string(),
+            String::new(),
             POINT::new(10, y_pos),
             380,
         );
@@ -149,11 +156,7 @@ impl MainGUI {
             &window,
             gui::CheckBoxOpts {
                 text: "Use UTC Time for log name".to_owned(),
-                check_state: if config.output().utc_time() {
-                    gui::CheckState::Checked
-                } else {
-                    gui::CheckState::Unchecked
-                },
+                check_state: gui::CheckState::Indeterminate,
                 position: POINT::new(10, y_pos),
                 ..Default::default()
             },
@@ -223,6 +226,10 @@ impl MainGUI {
         };
         new_self.events(); // attach our events
         new_self
+    }
+
+    pub fn load_values_from_config(&self, config: &ConfigFile) {
+        self.inputs.load_values_from_config(config);
     }
 
     pub fn run(&self) -> gui::MsgResult<i32> {
@@ -303,6 +310,15 @@ impl GUIInputs {
         self.source_pattern.events();
         self.output_folder.events(window, "Output Folder");
         self.output_pattern.events();
+    }
+
+    pub fn load_values_from_config(&self, config: &ConfigFile) {
+        self.source_folder.set_text(config.source().folder().to_string_lossy().as_ref());
+        self.source_pattern.set_text(config.source().pattern().as_str());
+        self.source_keep_original.set_check_state(check_state(config.source().keep_old()));
+        self.output_folder.set_text(config.output().folder().to_string_lossy().as_ref());
+        self.output_pattern.set_text(config.output().pattern_as_string().as_str());
+        self.output_use_utc.set_check_state(check_state(config.output().utc_time()));
     }
 
     pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
@@ -409,6 +425,10 @@ impl FileSelectBlock {
         self.edit.text()
     }
 
+    pub(crate) fn set_text(&self, text: &str) {
+        self.edit.set_text(text)
+    }
+
     pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static), title: &'static str) {
         self.select.on().bn_clicked({
             let window = window.clone();
@@ -476,6 +496,10 @@ impl TextInputBlock {
 
     fn text(&self) -> String {
         self.edit.text()
+    }
+
+    pub(crate) fn set_text(&self, text: &str) {
+        self.edit.set_text(text)
     }
 
     pub(crate) fn events(&self) {}
