@@ -3,6 +3,7 @@ use anyhow::{bail, Result};
 use windows::core::{Interface, InParam, IUnknown, PWSTR, HSTRING, BSTR};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Security::Credentials::*;
+use windows::Win32::Security::PSECURITY_DESCRIPTOR;
 use windows::Win32::System::TaskScheduler::*;
 use windows::Win32::System::Com::*;
 use windows::Win32::System::Ole::VariantInit;
@@ -14,6 +15,19 @@ const TASK_NAME: &'static str = "com.anatawa12.vrc-log-renamer";
 pub(crate) fn register_task_manager() -> Result<()> {
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)?;
+
+        CoInitializeSecurity(
+            PSECURITY_DESCRIPTOR::default(),
+            -1,
+            None,
+            None,
+            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
+            RPC_C_IMP_LEVEL_IMPERSONATE,
+            None,
+            EOLE_AUTHENTICATION_CAPABILITIES(0),
+            None
+        ).unwrap();
+
         let service: ITaskService = CoCreateInstance(
             &CLSID_CTaskScheduler as _,
             InParam::null(),
