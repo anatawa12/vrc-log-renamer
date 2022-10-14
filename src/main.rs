@@ -43,12 +43,24 @@ use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
 
 fn main() -> Result<()> {
-    let config = read_config_with_error_dialog()?;
+    let mut args = std::env::args();
+    args.next();
+    match args.next().as_ref().map(String::as_str) {
+        None | Some("gui") => {
+            let config = read_config_with_error_dialog()?;
 
-    println!("config loaded.");
+            println!("config loaded.");
 
-    MainGUI::new(&config).run()?;
-    //rename_main(&config)?;
+            MainGUI::new(&config).run()?;
+        }
+        Some("rename") => {
+            let config = read_config()?;
+            rename_main(&config)?;
+        }
+        Some(unknown) => {
+            bail!("unknown log renamer mode: {}", unknown);
+        }
+    }
 
     Ok(())
 }
