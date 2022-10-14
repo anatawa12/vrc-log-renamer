@@ -64,6 +64,10 @@ impl ConfigFile {
         }
         Ok(())
     }
+
+    pub fn new(source: Source, output: Output) -> Self {
+        Self { source, output }
+    }
 }
 
 impl ConfigFile {
@@ -125,6 +129,10 @@ impl Source {
     }
     pub fn keep_old(&self) -> bool {
         self.keep_old
+    }
+
+    pub fn new(folder: PathBuf, pattern: Regex, keep_old: bool) -> Self {
+        Self { folder, pattern, keep_old }
     }
 }
 
@@ -254,6 +262,44 @@ fn serialize_pattern<S: serde::Serializer>(
     s.serialize_str(&pattern_to_string(pattern).map_err(S::Error::custom)?)
 }
 
+pub  fn parse_pattern(str: &str) -> Option<Vec<Item<'static>>> {
+    fn own_strftime(item: Item) -> Item<'static> {
+        match item {
+            Item::Literal(s) => Item::OwnedLiteral(s.to_string().into_boxed_str()),
+            Item::Space(s) => Item::OwnedSpace(s.to_string().into_boxed_str()),
+            Item::OwnedLiteral(s) => Item::OwnedLiteral(s),
+            Item::OwnedSpace(s) => Item::OwnedSpace(s),
+            Item::Numeric(n, p) => {
+                if matches!(n, Numeric::Internal(_)) {
+                    // internal format is not allowed
+                    Item::Error
+                } else {
+                    Item::Numeric(n, p)
+                }
+            }
+            Item::Fixed(f) => {
+                if matches!(
+                            f,
+                            Fixed::Internal(_)
+                                | Fixed::TimezoneOffsetColonZ
+                                | Fixed::TimezoneOffsetZ
+                        ) {
+                    // internal and -Z format is not allowed
+                    Item::Error
+                } else {
+                    Item::Fixed(f)
+                }
+            }
+            Item::Error => Item::Error,
+        }
+    }
+    let pattern: Vec<Item> = StrftimeItems::new(str).map(own_strftime).collect();
+    if pattern.iter().any(|x| matches!(x, Item::Error)) {
+        return None
+    }
+    Some(pattern)
+}
+
 impl Output {
     default_fns!(
         folder: PathBuf = local_low_appdata_path()
@@ -302,13 +348,10 @@ impl Output {
                     Item::Error => Item::Error,
                 }
             }
-            self.pattern = StrftimeItems::new(str).map(own_strftime).collect();
-            if self.pattern.iter().any(|x| matches!(x, Item::Error)) {
-                return Err(Error::new(
-                    ErrorKind::InvalidData,
-                    format!("'{}' is invalid log file pattern", str),
-                ));
-            }
+            self.pattern = parse_pattern(&str).ok_or_else(|| Error::new(
+                ErrorKind::InvalidData,
+                format!("'{}' is invalid log file pattern", str),
+            ))?;
         }
         if let Some(Value::Boolean(bool)) = toml.get("utc_time") {
             self.utc_time = *bool;
@@ -330,6 +373,11 @@ impl Output {
 
     pub fn utc_time(&self) -> bool {
         self.utc_time
+    }
+
+
+    pub fn new(folder: PathBuf, pattern: Vec<Item<'static>>, utc_time: bool) -> Self {
+        Self { folder, pattern, utc_time }
     }
 }
 

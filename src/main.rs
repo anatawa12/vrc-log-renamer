@@ -19,13 +19,14 @@ mod config;
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
 
-use crate::config::{read_config, save_config, ConfigFile};
+use crate::config::{read_config, save_config, ConfigFile, Source, Output, parse_pattern};
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
+use regex::{Error, Regex};
 use take_if::TakeIf;
 use winsafe::co::FOS;
 use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
@@ -84,6 +85,7 @@ fn save_config_with_error_dialog(config: &ConfigFile) -> Result<()> {
 struct MainGUI {
     window: gui::WindowMain,
     inputs: GUIInputs,
+    save_config: gui::Button,
 }
 
 #[derive(Clone)]
@@ -178,6 +180,17 @@ impl MainGUI {
         );
         y_pos += TEXT_HEIGHT + space;
 
+        let save_config = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Save Config".to_owned(),
+                position: POINT::new(10, y_pos),
+                width: 70,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
         let new_self = Self {
             window,
             inputs: GUIInputs {
@@ -188,6 +201,7 @@ impl MainGUI {
                 output_pattern,
                 output_use_utc,
             },
+            save_config,
         };
         new_self.events(); // attach our events
         new_self
@@ -199,6 +213,18 @@ impl MainGUI {
 
     fn events(&self) {
         self.inputs.events(&self.window);
+        self.save_config.on().bn_clicked({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if let Some(new_config) = inputs.create_config(window.hwnd())? {
+                    if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
+                        window.hwnd().MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
+                    }
+                }
+                Ok(())
+            }
+        })
     }
 }
 
@@ -209,12 +235,42 @@ impl GUIInputs {
         self.output_folder.events(window, "Output Folder");
         self.output_pattern.events();
     }
+
+    pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
+        let source_pattern = match Regex::new(&self.source_pattern.text()) {
+            Ok(pat) => pat,
+            Err(_) => {
+                window.MessageBox("Cannot save the config: Log file Pattern is not valid", "Error", MB::OK)?;
+                return Ok(None);
+            }
+        };
+        let output_pattern = match parse_pattern(&self.output_pattern.text()) {
+            Some(pat) => pat,
+            None => {
+                window.MessageBox("Cannot save the config: Output File Pattern is not valid", "Error", MB::OK)?;
+                return Ok(None);
+            }
+        };
+        Ok(Some(ConfigFile::new(
+            Source::new(
+                self.source_folder.text().into(),
+                source_pattern,
+                self.source_keep_original.is_checked(),
+            ),
+            Output::new(
+                self.output_folder.text().into(),
+                output_pattern,
+                self.output_use_utc.is_checked(),
+            )
+        )))
+    }
 }
 
 fn add_point(a: POINT, b: POINT) -> POINT {
     POINT::new(a.x + b.x, a.y + b.y)
 }
 
+#[derive(Clone)]
 struct FileSelectBlock {
     label: gui::Label,
     edit: gui::Edit,
@@ -261,6 +317,10 @@ impl FileSelectBlock {
                 },
             ),
         }
+    }
+
+    fn text(&self) -> String {
+        self.edit.text()
     }
 
     pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static), title: &'static str) {
@@ -326,6 +386,10 @@ impl TextInputBlock {
                 },
             ),
         }
+    }
+
+    fn text(&self) -> String {
+        self.edit.text()
     }
 
     pub(crate) fn events(&self) {}
