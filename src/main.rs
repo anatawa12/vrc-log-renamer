@@ -78,8 +78,10 @@ struct MainGUI {
     window: gui::WindowMain,
     source_folder: FileSelectBlock,
     source_pattern: TextInputBlock,
+    source_keep_original: gui::CheckBox,
     output_folder: FileSelectBlock,
     output_pattern: TextInputBlock,
+    output_use_utc: gui::CheckBox,
 }
 
 impl MainGUI {
@@ -109,11 +111,21 @@ impl MainGUI {
             380,
         );
 
+        let source_keep_original = gui::CheckBox::new(
+            &window,
+            gui::CheckBoxOpts {
+                text: "Keep Original".to_owned(),
+                check_state: if config.source().keep_old() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
+                position: POINT::new(10, 122),
+                ..Default::default()
+            }
+        );
+
         let out_folder = FileSelectBlock::new(
             &window,
             "Copy/Move Log file to:".to_owned(),
             config.output().folder().to_string_lossy().into_owned(),
-            POINT::new(10, 122),
+            POINT::new(10, 145),
             380,
         );
 
@@ -121,16 +133,28 @@ impl MainGUI {
             &window,
             "Output File Pattern:".to_owned(),
             config.output().pattern_as_string(),
-            POINT::new(10, 178),
+            POINT::new(10, 201),
             380,
+        );
+
+        let output_use_utc = gui::CheckBox::new(
+            &window,
+            gui::CheckBoxOpts {
+                text: "Use UTC Time for log name".to_owned(),
+                check_state: if config.output().utc_time() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
+                position: POINT::new(10, 257),
+                ..Default::default()
+            }
         );
 
         let new_self = Self {
             window,
             source_folder: log_folder,
             source_pattern,
+            source_keep_original,
             output_folder: out_folder,
             output_pattern,
+            output_use_utc,
         };
         new_self.events(); // attach our events
         new_self
