@@ -1,4 +1,4 @@
-use std::thread::sleep;
+use std::cell::UnsafeCell;
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
 
@@ -21,7 +21,7 @@ pub fn gui_main() -> Result<()> {
     println!("config loaded.");
 
     let gui = MainGUI::new();
-    gui.load_values_from_config(&config);
+    gui.lazy_load_config(config);
     gui.run()?;
 
     Ok(())
@@ -245,6 +245,18 @@ impl MainGUI {
 
     pub fn run(&self) -> gui::MsgResult<i32> {
         self.window.run_main(None) // simply let the window manager do the hard work
+    }
+
+    fn lazy_load_config(&self, config: ConfigFile) {
+        self.window.on().wm_activate({
+            let optional = UnsafeCell::new(Some((config, self.inputs.clone())));
+            move |_| {
+                if let Some((config, inputs)) = unsafe { (*optional.get()).take() } {
+                    inputs.load_values_from_config(&config);
+                }
+                Ok(())
+            }
+        });
     }
 
     fn events(&self) {
