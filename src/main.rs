@@ -203,7 +203,7 @@ impl FileSelectBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 23)),
+                    position: add_point(origin, POINT::new(0, 13)),
                     width: width - 80,
                     height: 23,
                     ..Default::default()
@@ -213,7 +213,7 @@ impl FileSelectBlock {
                 window,
                 gui::ButtonOpts {
                     text: "Select".to_owned(),
-                    position: add_point(origin, POINT::new((width - 70) as i32, 23)),
+                    position: add_point(origin, POINT::new((width - 70) as i32, 13)),
                     width: 70,
                     height: 23,
                     ..Default::default()
@@ -277,7 +277,7 @@ impl TextInputBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 23)),
+                    position: add_point(origin, POINT::new(0, 13)),
                     width,
                     height: 23,
                     ..Default::default()
