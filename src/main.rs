@@ -30,12 +30,12 @@ use take_if::TakeIf;
 use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
 use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
-use winsafe_qemu::co::FOS;
-use winsafe_qemu::prelude::{
+use winsafe::co::FOS;
+use winsafe::prelude::{
     shell_IFileDialog, shell_IFileOpenDialog, shell_IModalWindow, shell_IShellItem,
     GuiNativeControl, GuiParent, GuiWindowText,
 };
-use winsafe_qemu::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
+use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 
 fn main() -> Result<()> {
     let config = match read_config() {
