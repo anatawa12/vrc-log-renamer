@@ -39,8 +39,19 @@ use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
 use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
 
 fn main() -> Result<()> {
-    let config = match read_config() {
-        Ok(config) => config,
+    let config = read_config_with_error_dialog()?;
+
+    println!("config loaded.");
+
+    MainGUI::new(&config).run()?;
+    //rename_main(&config)?;
+
+    Ok(())
+}
+
+fn read_config_with_error_dialog() -> Result<ConfigFile> {
+    match read_config() {
+        Ok(config) => Ok(config),
         Err(e) => {
             eprintln!("error reading config: {:?}", e);
             let message = format!(
@@ -49,19 +60,16 @@ fn main() -> Result<()> {
             );
             if HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OKCANCEL)? == DLGID::OK {
                 eprintln!("error ignored, continue with default config");
-                Default::default()
+                Ok(Default::default())
             } else {
                 bail!(e)
             }
         }
-    };
+    }
+}
 
-    println!("config loaded.");
-
-    MainGUI::new(&config).run()?;
-    //rename_main(&config)?;
-
-    match save_config(&config) {
+fn save_config_with_error_dialog(config: &ConfigFile) -> Result<()> {
+    match save_config(config) {
         Ok(()) => println!("config file written to: {}", config_file_path().display()),
         Err(e) => {
             eprintln!("error writing config: {:?}", e);
@@ -69,13 +77,17 @@ fn main() -> Result<()> {
             HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OK)?;
             bail!(e);
         }
-    };
-
+    }
     Ok(())
 }
 
 struct MainGUI {
     window: gui::WindowMain,
+    inputs: GUIInputs,
+}
+
+#[derive(Clone)]
+struct GUIInputs {
     source_folder: FileSelectBlock,
     source_pattern: TextInputBlock,
     source_keep_original: gui::CheckBox,
@@ -100,7 +112,7 @@ impl MainGUI {
         let mut y_pos = 10;
         let space = 7;
 
-        let log_folder = FileSelectBlock::new(
+        let source_folder = FileSelectBlock::new(
             &window,
             "Path to VRC Log Folder:".to_owned(),
             config.source().folder().to_string_lossy().into_owned(),
@@ -133,7 +145,7 @@ impl MainGUI {
         );
         y_pos += TEXT_HEIGHT + space * 2;
 
-        let out_folder = FileSelectBlock::new(
+        let output_folder = FileSelectBlock::new(
             &window,
             "Copy/Move Log file to:".to_owned(),
             config.output().folder().to_string_lossy().into_owned(),
@@ -168,12 +180,14 @@ impl MainGUI {
 
         let new_self = Self {
             window,
-            source_folder: log_folder,
-            source_pattern,
-            source_keep_original,
-            output_folder: out_folder,
-            output_pattern,
-            output_use_utc,
+            inputs: GUIInputs {
+                source_folder,
+                source_pattern,
+                source_keep_original,
+                output_folder,
+                output_pattern,
+                output_use_utc,
+            },
         };
         new_self.events(); // attach our events
         new_self
@@ -184,9 +198,16 @@ impl MainGUI {
     }
 
     fn events(&self) {
-        self.source_folder.events(&self.window, "VRC Log Folder");
+        self.inputs.events(&self.window);
+    }
+}
+
+impl GUIInputs {
+    pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static)) {
+        self.source_folder.events(window, "VRC Log Folder");
         self.source_pattern.events();
-        self.output_folder.events(&self.window, "Output Folder");
+        self.output_folder.events(window, "Output Folder");
+        self.output_pattern.events();
     }
 }
 
@@ -269,6 +290,7 @@ impl FileSelectBlock {
     }
 }
 
+#[derive(Clone)]
 struct TextInputBlock {
     label: gui::Label,
     edit: gui::Edit,
