@@ -27,16 +27,16 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use take_if::TakeIf;
-use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
-use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
-use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
 use winsafe::co::FOS;
+use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
 use winsafe::prelude::{
     shell_IFileDialog, shell_IFileOpenDialog, shell_IModalWindow, shell_IShellItem,
     GuiNativeControl, GuiParent, GuiWindowText,
 };
-use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
+use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
 use winsafe::SHCreateItemFromParsingName;
+use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
+use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
 
 fn main() -> Result<()> {
     let config = match read_config() {
@@ -122,10 +122,14 @@ impl MainGUI {
             &window,
             gui::CheckBoxOpts {
                 text: "Keep Original".to_owned(),
-                check_state: if config.source().keep_old() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
+                check_state: if config.source().keep_old() {
+                    gui::CheckState::Checked
+                } else {
+                    gui::CheckState::Unchecked
+                },
                 position: POINT::new(10, y_pos),
                 ..Default::default()
-            }
+            },
         );
         y_pos += TEXT_HEIGHT + space * 2;
 
@@ -151,10 +155,14 @@ impl MainGUI {
             &window,
             gui::CheckBoxOpts {
                 text: "Use UTC Time for log name".to_owned(),
-                check_state: if config.output().utc_time() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
+                check_state: if config.output().utc_time() {
+                    gui::CheckState::Checked
+                } else {
+                    gui::CheckState::Unchecked
+                },
                 position: POINT::new(10, y_pos),
                 ..Default::default()
-            }
+            },
         );
         y_pos += TEXT_HEIGHT + space;
 
@@ -245,8 +253,7 @@ impl FileSelectBlock {
                     co::CLSCTX::INPROC_SERVER,
                 )?;
                 obj.SetTitle(&title)?;
-                if let Some(item) = SHCreateItemFromParsingName(&edit.text(), None).ok()
-                {
+                if let Some(item) = SHCreateItemFromParsingName(&edit.text(), None).ok() {
                     obj.SetFolder(&item)?;
                 }
                 obj.SetFileName(&edit.text())?;
@@ -337,7 +344,9 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
     // Data to copy log is ready. Now, move/copy log file.
     fs::create_dir_all(config.output().folder())?;
     let date_format = if config.output().utc_time() {
-        utc_date.unwrap().format_with_items(config.output().pattern().iter())
+        utc_date
+            .unwrap()
+            .format_with_items(config.output().pattern().iter())
     } else {
         local_date.format_with_items(config.output().pattern().iter())
     };
@@ -388,7 +397,10 @@ fn assume_launch_time(f: &mut fs::File) -> io::Result<(Option<DateTime<Utc>>, Na
     }
      */
 
-    Ok((time_from_log.and_local_timezone(Utc).earliest(), time_from_log))
+    Ok((
+        time_from_log.and_local_timezone(Utc).earliest(),
+        time_from_log,
+    ))
 }
 
 #[cfg(windows)]
