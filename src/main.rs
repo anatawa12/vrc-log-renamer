@@ -84,6 +84,8 @@ struct MainGUI {
     output_use_utc: gui::CheckBox,
 }
 
+const TEXT_HEIGHT: i32 = 18;
+
 impl MainGUI {
     pub fn new(config: &ConfigFile) -> Self {
         let window = gui::WindowMain::new(
@@ -125,7 +127,7 @@ impl MainGUI {
                 ..Default::default()
             }
         );
-        y_pos += 13 + space * 2;
+        y_pos += TEXT_HEIGHT + space * 2;
 
         let out_folder = FileSelectBlock::new(
             &window,
@@ -154,7 +156,7 @@ impl MainGUI {
                 ..Default::default()
             }
         );
-        y_pos += 13 + space;
+        y_pos += TEXT_HEIGHT + space;
 
         let new_self = Self {
             window,
@@ -213,7 +215,7 @@ impl FileSelectBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 18)),
+                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
                     width: width - 80,
                     height: 23,
                     ..Default::default()
@@ -223,7 +225,7 @@ impl FileSelectBlock {
                 window,
                 gui::ButtonOpts {
                     text: "Select".to_owned(),
-                    position: add_point(origin, POINT::new((width - 70) as i32, 18)),
+                    position: add_point(origin, POINT::new((width - 70) as i32, TEXT_HEIGHT)),
                     width: 70,
                     height: 23,
                     ..Default::default()
@@ -288,7 +290,7 @@ impl TextInputBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, 18)),
+                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
                     width,
                     height: 23,
                     ..Default::default()
