@@ -204,6 +204,45 @@ impl FileSelectBlock {
     }
 }
 
+struct TextInputBlock {
+    label: gui::Label,
+    edit: gui::Edit,
+}
+
+impl TextInputBlock {
+    // height: 46
+    fn new(
+        window: &impl GuiParent,
+        name: String,
+        initial: String,
+        origin: POINT,
+        width: u32,
+    ) -> Self {
+        Self {
+            label: gui::Label::new(
+                window,
+                gui::LabelOpts {
+                    text: name,
+                    position: add_point(origin, POINT::new(0, 0)),
+                    ..Default::default()
+                },
+            ),
+            edit: gui::Edit::new(
+                window,
+                gui::EditOpts {
+                    text: initial,
+                    position: add_point(origin, POINT::new(0, 23)),
+                    width,
+                    height: 23,
+                    ..Default::default()
+                },
+            ),
+        }
+    }
+
+    pub(crate) fn events(&self) {}
+}
+
 fn rename_main(config: &ConfigFile) -> Result<()> {
     let out_folder = config.output().folder();
     fs::create_dir_all(out_folder)?;
