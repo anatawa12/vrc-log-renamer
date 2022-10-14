@@ -95,57 +95,65 @@ impl MainGUI {
             },
         );
 
+        let mut y_pos = 10;
+
         let log_folder = FileSelectBlock::new(
             &window,
             "Path to VRC Log Folder:".to_owned(),
             config.source().folder().to_string_lossy().into_owned(),
-            POINT::new(10, 10),
+            POINT::new(10, y_pos),
             380,
         );
+        y_pos += FileSelectBlock::HEIGHT + 10;
 
         let source_pattern = TextInputBlock::new(
             &window,
             "VRC Log File Pattern:".to_owned(),
             config.source().pattern().as_str().to_owned(),
-            POINT::new(10, 66),
+            POINT::new(10, y_pos),
             380,
         );
+        y_pos += TextInputBlock::HEIGHT + 10;
 
         let source_keep_original = gui::CheckBox::new(
             &window,
             gui::CheckBoxOpts {
                 text: "Keep Original".to_owned(),
                 check_state: if config.source().keep_old() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
-                position: POINT::new(10, 122),
+                position: POINT::new(10, y_pos),
                 ..Default::default()
             }
         );
+        y_pos += 13 + 10;
 
         let out_folder = FileSelectBlock::new(
             &window,
             "Copy/Move Log file to:".to_owned(),
             config.output().folder().to_string_lossy().into_owned(),
-            POINT::new(10, 145),
+            POINT::new(10, y_pos),
             380,
         );
+        y_pos += FileSelectBlock::HEIGHT + 10;
 
         let output_pattern = TextInputBlock::new(
             &window,
             "Output File Pattern:".to_owned(),
             config.output().pattern_as_string(),
-            POINT::new(10, 201),
+            POINT::new(10, y_pos),
             380,
         );
+        y_pos += TextInputBlock::HEIGHT + 10;
 
         let output_use_utc = gui::CheckBox::new(
             &window,
             gui::CheckBoxOpts {
                 text: "Use UTC Time for log name".to_owned(),
                 check_state: if config.output().utc_time() { gui::CheckState::Checked } else { gui::CheckState::Unchecked },
-                position: POINT::new(10, 257),
+                position: POINT::new(10, y_pos),
                 ..Default::default()
             }
         );
+        y_pos += 13 + 10;
 
         let new_self = Self {
             window,
@@ -182,7 +190,8 @@ struct FileSelectBlock {
 }
 
 impl FileSelectBlock {
-    // height: 46
+    const HEIGHT: i32 = 36;
+
     fn new(
         window: &impl GuiParent,
         name: String,
@@ -256,7 +265,8 @@ struct TextInputBlock {
 }
 
 impl TextInputBlock {
-    // height: 46
+    const HEIGHT: i32 = 36;
+
     fn new(
         window: &impl GuiParent,
         name: String,
