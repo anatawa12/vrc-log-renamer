@@ -21,7 +21,7 @@ use regex::Regex;
 use serde::ser::Error as _;
 use serde::Serialize;
 use std::io::ErrorKind;
-use std::path::{is_separator, PathBuf};
+use std::path::PathBuf;
 use std::{fs, io};
 use toml::Value;
 
@@ -60,7 +60,7 @@ impl ConfigFile {
             self.source.read_from_file(source)?
         }
         if let Some(output) = toml.get("output") {
-            self.source.read_from_file(output)?
+            self.output.read_from_file(output)?
         }
         Ok(())
     }
@@ -320,36 +320,6 @@ impl Output {
             self.folder = PathBuf::from(str)
         }
         if let Some(Value::String(str)) = toml.get("pattern") {
-            fn own_strftime(item: Item) -> Item<'static> {
-                match item {
-                    Item::Literal(s) => Item::OwnedLiteral(s.to_string().into_boxed_str()),
-                    Item::Space(s) => Item::OwnedSpace(s.to_string().into_boxed_str()),
-                    Item::OwnedLiteral(s) => Item::OwnedLiteral(s),
-                    Item::OwnedSpace(s) => Item::OwnedSpace(s),
-                    Item::Numeric(n, p) => {
-                        if matches!(n, Numeric::Internal(_)) {
-                            // internal format is not allowed
-                            Item::Error
-                        } else {
-                            Item::Numeric(n, p)
-                        }
-                    }
-                    Item::Fixed(f) => {
-                        if matches!(
-                            f,
-                            Fixed::Internal(_)
-                                | Fixed::TimezoneOffsetColonZ
-                                | Fixed::TimezoneOffsetZ
-                        ) {
-                            // internal and -Z format is not allowed
-                            Item::Error
-                        } else {
-                            Item::Fixed(f)
-                        }
-                    }
-                    Item::Error => Item::Error,
-                }
-            }
             self.pattern = parse_pattern(&str).ok_or_else(|| {
                 Error::new(
                     ErrorKind::InvalidData,

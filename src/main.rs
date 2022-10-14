@@ -19,41 +19,29 @@
 
 mod config;
 mod task_managers;
+mod gui;
 
 #[cfg(target_env = "gnu")]
 use winsafe_qemu as winsafe;
 
-use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
+use crate::config::{read_config, ConfigFile};
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use anyhow::{bail, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
-use regex::{Error, Regex};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use take_if::TakeIf;
-use winsafe::co::FOS;
-use winsafe::co::{DLGID, KF, KNOWNFOLDERID, MB};
-use winsafe::prelude::{
-    shell_IFileDialog, shell_IFileOpenDialog, shell_IModalWindow, shell_IShellItem,
-    GuiNativeControl, GuiParent, GuiWindowText,
-};
-use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
-use winsafe::SHCreateItemFromParsingName;
-use winsafe::{co, CoCreateInstance, IFileOpenDialog, IShellItem};
-use winsafe::{gui, SHGetKnownFolderPath, HWND, POINT, SIZE};
+use winsafe::co::{KF, KNOWNFOLDERID};
+use winsafe::{SHGetKnownFolderPath};
 
 fn main() -> Result<()> {
     let mut args = std::env::args();
     args.next();
     match args.next().as_ref().map(String::as_str) {
         None | Some("gui") => {
-            let config = read_config_with_error_dialog()?;
-
-            println!("config loaded.");
-
-            MainGUI::new(&config).run()?;
+            gui::gui_main()?;
         }
         Some("rename") | Some("scheduled") => {
             let config = read_config()?;
@@ -71,460 +59,6 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-fn read_config_with_error_dialog() -> Result<ConfigFile> {
-    match read_config() {
-        Ok(config) => Ok(config),
-        Err(e) => {
-            eprintln!("error reading config: {:?}", e);
-            let message = format!(
-                "Error reading config file: {}.\nClick OK to discord config & continue.",
-                e
-            );
-            if HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OKCANCEL)? == DLGID::OK {
-                eprintln!("error ignored, continue with default config");
-                Ok(Default::default())
-            } else {
-                bail!(e)
-            }
-        }
-    }
-}
-
-fn save_config_with_error_dialog(config: &ConfigFile) -> Result<()> {
-    match save_config(config) {
-        Ok(()) => println!("config file written to: {}", config_file_path().display()),
-        Err(e) => {
-            eprintln!("error writing config: {:?}", e);
-            let message = format!("Error writing config file: {}.", e);
-            HWND::GetDesktopWindow().MessageBox(&message, "Error", MB::OK)?;
-            bail!(e);
-        }
-    }
-    Ok(())
-}
-
-struct MainGUI {
-    window: gui::WindowMain,
-    inputs: GUIInputs,
-    save_config: gui::Button,
-    run_renamer: gui::Button,
-    install: gui::Button,
-    uninstall: gui::Button,
-}
-
-#[derive(Clone)]
-struct GUIInputs {
-    source_folder: FileSelectBlock,
-    source_pattern: TextInputBlock,
-    source_keep_original: gui::CheckBox,
-    output_folder: FileSelectBlock,
-    output_pattern: TextInputBlock,
-    output_use_utc: gui::CheckBox,
-}
-
-const TEXT_HEIGHT: i32 = 18;
-
-impl MainGUI {
-    pub fn new(config: &ConfigFile) -> Self {
-        let window = gui::WindowMain::new(
-            // instantiate the window manager
-            gui::WindowMainOpts {
-                title: "VRC Log Renamer".to_owned(),
-                size: SIZE::new(400, 323),
-                ..Default::default() // leave all other options as default
-            },
-        );
-
-        let mut y_pos = 10;
-        let space = 7;
-
-        let source_folder = FileSelectBlock::new(
-            &window,
-            "Path to VRC Log Folder:".to_owned(),
-            config.source().folder().to_string_lossy().into_owned(),
-            POINT::new(10, y_pos),
-            380,
-        );
-        y_pos += FileSelectBlock::HEIGHT + space;
-
-        let source_pattern = TextInputBlock::new(
-            &window,
-            "VRC Log File Pattern (regex):".to_owned(),
-            config.source().pattern().as_str().to_owned(),
-            POINT::new(10, y_pos),
-            380,
-        );
-        y_pos += TextInputBlock::HEIGHT + space;
-
-        let source_keep_original = gui::CheckBox::new(
-            &window,
-            gui::CheckBoxOpts {
-                text: "Keep Original".to_owned(),
-                check_state: if config.source().keep_old() {
-                    gui::CheckState::Checked
-                } else {
-                    gui::CheckState::Unchecked
-                },
-                position: POINT::new(10, y_pos),
-                ..Default::default()
-            },
-        );
-        y_pos += TEXT_HEIGHT + space * 2;
-
-        let output_folder = FileSelectBlock::new(
-            &window,
-            "Copy/Move Log file to:".to_owned(),
-            config.output().folder().to_string_lossy().into_owned(),
-            POINT::new(10, y_pos),
-            380,
-        );
-        y_pos += FileSelectBlock::HEIGHT + space;
-
-        let output_pattern = TextInputBlock::new(
-            &window,
-            "Output File Pattern (chrono's strftime):".to_owned(),
-            config.output().pattern_as_string(),
-            POINT::new(10, y_pos),
-            380,
-        );
-        y_pos += TextInputBlock::HEIGHT + space;
-
-        let output_use_utc = gui::CheckBox::new(
-            &window,
-            gui::CheckBoxOpts {
-                text: "Use UTC Time for log name".to_owned(),
-                check_state: if config.output().utc_time() {
-                    gui::CheckState::Checked
-                } else {
-                    gui::CheckState::Unchecked
-                },
-                position: POINT::new(10, y_pos),
-                ..Default::default()
-            },
-        );
-        y_pos += TEXT_HEIGHT + space;
-
-        let save_config = gui::Button::new(
-            &window,
-            gui::ButtonOpts {
-                text: "Save Config".to_owned(),
-                position: POINT::new(10, y_pos),
-                width: 185,
-                height: 23,
-                ..Default::default()
-            },
-        );
-
-        let run_renamer = gui::Button::new(
-            &window,
-            gui::ButtonOpts {
-                text: "Execute Now".to_owned(),
-                position: POINT::new(205, y_pos),
-                width: 185,
-                height: 23,
-                ..Default::default()
-            },
-        );
-
-        y_pos += 23 + space;
-
-        let install = gui::Button::new(
-            &window,
-            gui::ButtonOpts {
-                text: "Install to Task Scheduler".to_owned(),
-                position: POINT::new(10, y_pos),
-                width: 185,
-                height: 23,
-                ..Default::default()
-            },
-        );
-
-        let uninstall = gui::Button::new(
-            &window,
-            gui::ButtonOpts {
-                text: "Uninstall from Task Scheduler".to_owned(),
-                position: POINT::new(205, y_pos),
-                width: 185,
-                height: 23,
-                ..Default::default()
-            },
-        );
-
-        let new_self = Self {
-            window,
-            inputs: GUIInputs {
-                source_folder,
-                source_pattern,
-                source_keep_original,
-                output_folder,
-                output_pattern,
-                output_use_utc,
-            },
-            save_config,
-            install,
-            uninstall,
-            run_renamer,
-        };
-        new_self.events(); // attach our events
-        new_self
-    }
-
-    pub fn run(&self) -> gui::MsgResult<i32> {
-        self.window.run_main(None) // simply let the window manager do the hard work
-    }
-
-    fn events(&self) {
-        self.inputs.events(&self.window);
-        self.save_config.on().bn_clicked({
-            let window = self.window.clone();
-            let inputs = self.inputs.clone();
-            move || {
-                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
-                    window
-                        .hwnd()
-                        .MessageBox("Config Saved!", "Config Saved!", MB::OK)?;
-                }
-                Ok(())
-            }
-        });
-        self.install.on().bn_clicked({
-            let window = self.window.clone();
-            let inputs = self.inputs.clone();
-            move || {
-                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
-                    register_task_manager()?;
-                    window.hwnd().MessageBox(
-                        "Installing VRC Log Manager from Task Scheduler succeed!",
-                        "Succeed!",
-                        MB::OK,
-                    )?;
-                }
-                Ok(())
-            }
-        });
-        self.uninstall.on().bn_clicked({
-            let window = self.window.clone();
-            let inputs = self.inputs.clone();
-            move || {
-                if let Some(Some(_)) = inputs.create_save_config(window.hwnd()).ok() {
-                    unregister_task_manager()?;
-                    window.hwnd().MessageBox(
-                        "Uninstalling VRC Log Manager from Task Scheduler succeed!",
-                        "Succeed!",
-                        MB::OK,
-                    )?;
-                }
-                Ok(())
-            }
-        });
-        self.run_renamer.on().bn_clicked({
-            let window = self.window.clone();
-            let inputs = self.inputs.clone();
-            move || {
-                if let Some(Some(new_config)) = inputs.create_save_config(window.hwnd()).ok() {
-                    if let Some(e) = rename_main(&new_config).err() {
-                        eprintln!("error during rename: {:?}", e);
-                        window.hwnd().MessageBox(
-                            &format!("Error during renaming logs: {}", e),
-                            "Error!",
-                            MB::OK,
-                        )?;
-                    } else {
-                        window
-                            .hwnd()
-                            .MessageBox("Renaming Log Succeed!", "Succeed!", MB::OK)?;
-                    }
-                }
-                Ok(())
-            }
-        });
-    }
-}
-
-impl GUIInputs {
-    pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static)) {
-        self.source_folder.events(window, "VRC Log Folder");
-        self.source_pattern.events();
-        self.output_folder.events(window, "Output Folder");
-        self.output_pattern.events();
-    }
-
-    pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
-        let source_pattern = match Regex::new(&self.source_pattern.text()) {
-            Ok(pat) => pat,
-            Err(_) => {
-                window.MessageBox(
-                    "Cannot save the config: Log file Pattern is not valid",
-                    "Error",
-                    MB::OK,
-                )?;
-                return Ok(None);
-            }
-        };
-        let output_pattern = match parse_pattern(&self.output_pattern.text()) {
-            Some(pat) => pat,
-            None => {
-                window.MessageBox(
-                    "Cannot save the config: Output File Pattern is not valid",
-                    "Error",
-                    MB::OK,
-                )?;
-                return Ok(None);
-            }
-        };
-        Ok(Some(ConfigFile::new(
-            Source::new(
-                self.source_folder.text().into(),
-                source_pattern,
-                self.source_keep_original.is_checked(),
-            ),
-            Output::new(
-                self.output_folder.text().into(),
-                output_pattern,
-                self.output_use_utc.is_checked(),
-            ),
-        )))
-    }
-
-    pub(crate) fn create_save_config(&self, hwnd: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
-        if let Some(new_config) = self.create_config(hwnd)? {
-            if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
-                return Ok(Some(new_config));
-            }
-        }
-        Ok(None)
-    }
-}
-
-fn add_point(a: POINT, b: POINT) -> POINT {
-    POINT::new(a.x + b.x, a.y + b.y)
-}
-
-#[derive(Clone)]
-struct FileSelectBlock {
-    label: gui::Label,
-    edit: gui::Edit,
-    select: gui::Button,
-}
-
-impl FileSelectBlock {
-    const HEIGHT: i32 = 41;
-
-    fn new(
-        window: &impl GuiParent,
-        name: String,
-        initial: String,
-        origin: POINT,
-        width: u32,
-    ) -> FileSelectBlock {
-        Self {
-            label: gui::Label::new(
-                window,
-                gui::LabelOpts {
-                    text: name,
-                    position: add_point(origin, POINT::new(0, 0)),
-                    ..Default::default()
-                },
-            ),
-            edit: gui::Edit::new(
-                window,
-                gui::EditOpts {
-                    text: initial,
-                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
-                    width: width - 80,
-                    height: 23,
-                    ..Default::default()
-                },
-            ),
-            select: gui::Button::new(
-                window,
-                gui::ButtonOpts {
-                    text: "Select".to_owned(),
-                    position: add_point(origin, POINT::new((width - 70) as i32, TEXT_HEIGHT)),
-                    width: 70,
-                    height: 23,
-                    ..Default::default()
-                },
-            ),
-        }
-    }
-
-    fn text(&self) -> String {
-        self.edit.text()
-    }
-
-    pub(crate) fn events(&self, window: &(impl GuiParent + Clone + 'static), title: &'static str) {
-        self.select.on().bn_clicked({
-            let window = window.clone();
-            let edit = self.edit.clone();
-            move || {
-                let obj = CoCreateInstance::<IFileOpenDialog>(
-                    &co::CLSID::FileOpenDialog,
-                    None,
-                    co::CLSCTX::INPROC_SERVER,
-                )?;
-                obj.SetTitle(&title)?;
-                if let Some(item) = SHCreateItemFromParsingName(&edit.text(), None).ok() {
-                    obj.SetFolder(&item)?;
-                }
-                obj.SetFileName(&edit.text())?;
-                obj.SetOptions(FOS::PICKFOLDERS)?;
-                if obj.Show(window.hwnd())? {
-                    let path = obj.GetResult()?.GetDisplayName(co::SIGDN::FILESYSPATH)?;
-                    edit.set_text(&path);
-                    println!("folder chosen: {}", path);
-                }
-                Ok(())
-            }
-        });
-    }
-}
-
-#[derive(Clone)]
-struct TextInputBlock {
-    label: gui::Label,
-    edit: gui::Edit,
-}
-
-impl TextInputBlock {
-    const HEIGHT: i32 = 41;
-
-    fn new(
-        window: &impl GuiParent,
-        name: String,
-        initial: String,
-        origin: POINT,
-        width: u32,
-    ) -> Self {
-        Self {
-            label: gui::Label::new(
-                window,
-                gui::LabelOpts {
-                    text: name,
-                    position: add_point(origin, POINT::new(0, 0)),
-                    ..Default::default()
-                },
-            ),
-            edit: gui::Edit::new(
-                window,
-                gui::EditOpts {
-                    text: initial,
-                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
-                    width,
-                    height: 23,
-                    ..Default::default()
-                },
-            ),
-        }
-    }
-
-    fn text(&self) -> String {
-        self.edit.text()
-    }
-
-    pub(crate) fn events(&self) {}
 }
 
 fn rename_main(config: &ConfigFile) -> Result<()> {
@@ -549,7 +83,7 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
     // first, try to open as read to check if the log file is not of running VRChat
     let mut file = match fs::File::options().write(true).read(true).open(path) {
         Ok(f) => f,
-        Err(e) => {
+        Err(_) => {
             println!("{} may be used by other process. skipping", path.display());
             return Ok(());
         }
@@ -597,7 +131,7 @@ fn assume_launch_time(f: &mut fs::File) -> io::Result<(Option<DateTime<Utc>>, Na
     // it must be ascii.
     let str = std::str::from_utf8(&buffer)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid utf8"))?;
-    let time_from_log = chrono::NaiveDateTime::parse_from_str(str, "%Y.%m.%d %H:%M:%S")
+    let time_from_log = NaiveDateTime::parse_from_str(str, "%Y.%m.%d %H:%M:%S")
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid VRC log"))?;
 
     /*

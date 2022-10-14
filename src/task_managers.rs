@@ -1,11 +1,9 @@
 use anyhow::Result;
-use windows::core::{InParam, Interface, BSTR, GUID, HSTRING, PWSTR};
-use windows::Win32::Security::PSECURITY_DESCRIPTOR;
+use windows::core::*;
 use windows::Win32::System::Com::*;
 use windows::Win32::System::TaskScheduler::*;
 
 // see https://learn.microsoft.com/en-us/windows/win32/taskschd/daily-trigger-example--c---
-// see https://learn.microsoft.com/ja-jp/windows/win32/taskschd/c-c-code-example-creating-a-task-using-newworkitem
 
 const TASK_NAME: &'static str = "com.anatawa12.vrc-log-renamer";
 

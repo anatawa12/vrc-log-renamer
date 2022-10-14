@@ -1,7 +1,4 @@
-use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::{env, fs, io};
+use std::{io};
 
 fn main() -> io::Result<()> {
     let mut res = winres::WindowsResource::new();
