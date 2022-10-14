@@ -86,6 +86,7 @@ struct MainGUI {
     window: gui::WindowMain,
     inputs: GUIInputs,
     save_config: gui::Button,
+    run_renamer: gui::Button,
 }
 
 #[derive(Clone)]
@@ -191,6 +192,17 @@ impl MainGUI {
             },
         );
 
+        let run_renamer = gui::Button::new(
+            &window,
+            gui::ButtonOpts {
+                text: "Execute Now".to_owned(),
+                position: POINT::new(90, y_pos),
+                width: 70,
+                height: 23,
+                ..Default::default()
+            },
+        );
+
         let new_self = Self {
             window,
             inputs: GUIInputs {
@@ -202,6 +214,7 @@ impl MainGUI {
                 output_use_utc,
             },
             save_config,
+            run_renamer,
         };
         new_self.events(); // attach our events
         new_self
@@ -224,7 +237,24 @@ impl MainGUI {
                 }
                 Ok(())
             }
-        })
+        });
+        self.run_renamer.on().bn_clicked({
+            let window = self.window.clone();
+            let inputs = self.inputs.clone();
+            move || {
+                if let Some(new_config) = inputs.create_config(window.hwnd())? {
+                    if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
+                        if let Some(e) = rename_main(&new_config).err() {
+                            eprintln!("error during rename: {:?}", e);
+                            window.hwnd().MessageBox(&format!("Error during renaming logs: {}", e), "Error!", MB::OK)?;
+                        } else {
+                            window.hwnd().MessageBox("Renaming Log Succeed!", "Succeed!", MB::OK)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
+        });
     }
 }
 
