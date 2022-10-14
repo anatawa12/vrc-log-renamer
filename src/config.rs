@@ -158,10 +158,7 @@ pub struct Output {
     utc_time: bool,
 }
 
-fn serialize_pattern<S: serde::Serializer>(
-    pattern: &Vec<Item<'static>>,
-    s: S,
-) -> Result<S::Ok, S::Error> {
+fn pattern_to_string(pattern: &Vec<Item<'static>>) -> Result<String, &'static str> {
     let mut string = String::new();
     for x in pattern {
         match x {
@@ -221,7 +218,7 @@ fn serialize_pattern<S: serde::Serializer>(
                     // TIME ZONE SPECIFIERS and DATE & TIME SPECIFIERS
                     Numeric::Timestamp => string.push('s'),
 
-                    Numeric::Internal(_) => return Err(S::Error::custom("internal format found")),
+                    Numeric::Internal(_) => return Err("internal format found"),
                 }
             }
             Item::Fixed(f) => match f {
@@ -240,16 +237,21 @@ fn serialize_pattern<S: serde::Serializer>(
                 Fixed::TimezoneOffset => string.push_str("%z"),
                 Fixed::RFC2822 => string.push_str("%c"),
                 Fixed::RFC3339 => string.push_str("%+"),
-                Fixed::TimezoneOffsetColonZ => {
-                    return Err(S::Error::custom("internal format found"))
-                }
-                Fixed::TimezoneOffsetZ => return Err(S::Error::custom("internal format found")),
-                Fixed::Internal(_) => return Err(S::Error::custom("internal format found")),
+                Fixed::TimezoneOffsetColonZ => return Err("internal format found"),
+                Fixed::TimezoneOffsetZ => return Err("internal format found"),
+                Fixed::Internal(_) => return Err("internal format found"),
             },
-            Item::Error => return Err(S::Error::custom("format error found")),
+            Item::Error => return Err("format error found"),
         }
     }
-    s.serialize_str(&string)
+    return Ok(string);
+}
+
+fn serialize_pattern<S: serde::Serializer>(
+    pattern: &Vec<Item<'static>>,
+    s: S,
+) -> Result<S::Ok, S::Error> {
+    s.serialize_str(&pattern_to_string(pattern).map_err(S::Error::custom)?)
 }
 
 impl Output {
@@ -320,6 +322,10 @@ impl Output {
 
     pub fn pattern(&self) -> &Vec<Item<'static>> {
         &self.pattern
+    }
+
+    pub fn pattern_as_string(&self) -> String {
+        pattern_to_string(&self.pattern).unwrap()
     }
 
     pub fn utc_time(&self) -> bool {

@@ -76,7 +76,9 @@ fn main() -> Result<()> {
 struct MainGUI {
     window: gui::WindowMain,
     log_folder: FileSelectBlock,
+    source_pattern: TextInputBlock,
     out_folder: FileSelectBlock,
+    output_pattern: TextInputBlock,
 }
 
 impl MainGUI {
@@ -98,18 +100,36 @@ impl MainGUI {
             380,
         );
 
+        let source_pattern = TextInputBlock::new(
+            &window,
+            "VRC Log File Pattern:".to_owned(),
+            config.source().pattern().as_str().to_owned(),
+            POINT::new(10, 66),
+            380,
+        );
+
         let out_folder = FileSelectBlock::new(
             &window,
             "Copy/Move Log file to:".to_owned(),
             config.output().folder().to_string_lossy().into_owned(),
-            POINT::new(10, 66),
+            POINT::new(10, 122),
+            380,
+        );
+
+        let output_pattern = TextInputBlock::new(
+            &window,
+            "Output File Pattern:".to_owned(),
+            config.output().pattern_as_string(),
+            POINT::new(10, 178),
             380,
         );
 
         let new_self = Self {
             window,
             log_folder,
+            source_pattern,
             out_folder,
+            output_pattern,
         };
         new_self.events(); // attach our events
         new_self
@@ -121,6 +141,7 @@ impl MainGUI {
 
     fn events(&self) {
         self.log_folder.events(&self.window, "VRC Log Folder");
+        self.source_pattern.events();
         self.out_folder.events(&self.window, "Output Folder");
     }
 }
