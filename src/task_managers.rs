@@ -18,7 +18,7 @@ pub(crate) fn register_task_manager() -> Result<()> {
             &CLSID_CTaskScheduler as _,
             InParam::null(),
             CLSCTX_INPROC_SERVER,
-        )?;
+        ).unwrap();
 
         service.Connect(InParam::null(), InParam::null(), InParam::null(), InParam::null()).unwrap();
 
