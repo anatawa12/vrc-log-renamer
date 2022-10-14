@@ -13,18 +13,6 @@ pub(crate) fn register_task_manager() -> Result<()> {
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)?;
 
-        CoInitializeSecurity(
-            PSECURITY_DESCRIPTOR::default(),
-            -1,
-            None,
-            None,
-            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-            RPC_C_IMP_LEVEL_IMPERSONATE,
-            None,
-            EOLE_AUTHENTICATION_CAPABILITIES(0),
-            None,
-        )?;
-
         let service: ITaskService = CoCreateInstance(
             &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
             InParam::null(),
@@ -76,18 +64,6 @@ pub(crate) fn register_task_manager() -> Result<()> {
 pub(crate) fn unregister_task_manager() -> Result<()> {
     unsafe {
         CoInitializeEx(None, COINIT_MULTITHREADED)?;
-
-        CoInitializeSecurity(
-            PSECURITY_DESCRIPTOR::default(),
-            -1,
-            None,
-            None,
-            RPC_C_AUTHN_LEVEL_PKT_PRIVACY,
-            RPC_C_IMP_LEVEL_IMPERSONATE,
-            None,
-            EOLE_AUTHENTICATION_CAPABILITIES(0),
-            None,
-        )?;
 
         let service: ITaskService = CoCreateInstance(
             &GUID::from_u128(0x0f87369f_a4e5_4cfc_bd3e_73e6154572dd), // CLSID_TaskScheduler as _,
