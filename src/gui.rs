@@ -484,7 +484,7 @@ impl FileSelectBlock {
                 gui::EditOpts {
                     text: initial,
                     position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
-                    width: width - 80,
+                    width: width - 100,
                     height: 23,
                     ..Default::default()
                 },
@@ -493,8 +493,8 @@ impl FileSelectBlock {
                 window,
                 gui::ButtonOpts {
                     text: m!(SelectInGuiButtonText).to_owned(),
-                    position: add_point(origin, POINT::new((width - 70) as i32, TEXT_HEIGHT)),
-                    width: 70,
+                    position: add_point(origin, POINT::new((width - 90) as i32, TEXT_HEIGHT)),
+                    width: 90,
                     height: 23,
                     ..Default::default()
                 },
