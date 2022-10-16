@@ -1,48 +1,10 @@
 [workspace]
-members = ['.', 'proc-macros']
+members = [
+    '.',
+    'proc-macros',
+    'application',
+]
 
 [workspace.package]
 version = "0.1.0"
 authors = ["anatawa12"]
-
-[package]
-name = "vrc-log-renamer"
-edition = "2021"
-description = "the tool to rename logs of VRChat to have date info"
-license = "GPL-3.0-or-later"
-version.workspace = true
-authors.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-anyhow = "1.0.65"
-chrono = "0.4.22"
-once_cell = "1.15.0"
-regex = "1.6.0"
-serde = { version = "1.0.145", features = ["derive"] }
-take-if = "1.0.0"
-toml = "0.5.9"
-proc-macros = { path = "proc-macros" }
-
-[dependencies.windows]
-version = "0.42.0"
-features = [
-    "Win32_System_TaskScheduler",
-    "Win32_System_Com",
-    "Win32_Foundation",
-    "Win32_System_Ole",
-    "Win32_Security_Credentials",
-    "Win32_Graphics_Gdi",
-    "Win32_Globalization",
-    "Win32_System_SystemServices",
-]
-
-[target.'cfg(target_env="gnu")'.dependencies]
-winsafe_qemu = { package="winsafe", path = "winsafe", version = "0.0.11", features = ["gui"] }
-
-[target.'cfg(not(target_env="gnu"))'.dependencies]
-winsafe = { version = "0.0.11", features = ["gui"] }
-
-[build-dependencies]
-winres = "0.1.12"
