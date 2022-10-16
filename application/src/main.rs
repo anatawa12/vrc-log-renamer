@@ -38,6 +38,8 @@ use take_if::TakeIf;
 use winsafe::co::{KF, KNOWNFOLDERID};
 use winsafe::SHGetKnownFolderPath;
 
+pub static LICENSES_TXT: &'static str = include_str!(concat!(env!("OUT_DIR"), "/licenses.txt"));
+
 fn main() -> Result<()> {
     let mut args = std::env::args();
     args.next();
@@ -54,6 +56,9 @@ fn main() -> Result<()> {
         }
         Some("unregister_schedule") => {
             unregister_task_manager()?;
+        }
+        Some("licenses") => {
+            print!("{}", LICENSES_TXT);
         }
         Some(unknown) => {
             bail!("unknown log renamer mode: {}", unknown);

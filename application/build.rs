@@ -14,12 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use std::{io};
+use license_gen::Builder;
+use std::path::PathBuf;
+use std::{env, fs, io};
 
 fn main() -> io::Result<()> {
     let mut res = winres::WindowsResource::new();
     res.set_windres_path("x86_64-w64-mingw32-windres");
     res.set("InternalName", "TEST.EXE");
     res.compile()?;
+
+    Builder::new().generate_to_io(fs::File::create(
+        PathBuf::from(env::var("OUT_DIR").unwrap()).join("licenses.txt"),
+    )?)?;
+
     Ok(())
 }
