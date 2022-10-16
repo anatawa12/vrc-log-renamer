@@ -5,6 +5,7 @@ description = "the tool to rename logs of VRChat to have date info"
 license = "GPL-3.0-or-later"
 version.workspace = true
 authors.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
