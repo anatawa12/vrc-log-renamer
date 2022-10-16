@@ -84,7 +84,11 @@ pub fn init_i18n() {
     // store localized messages to mapping here
     let locale = get_current_locale();
     println!("found locale: {}", locale);
-    match locale.split_once('-').map(|x| x.0).unwrap_or(locale.as_str()) {
+    match locale
+        .split_once('-')
+        .map(|x| x.0)
+        .unwrap_or(locale.as_str())
+    {
         "ja" => localization_ja(&mut mapping),
         _ => {}
     }
@@ -170,18 +174,30 @@ pub fn get_message(message: Message) -> &'static str {
 }
 
 fn localization_ja(mapping: &mut HashMap<Message, &str>) {
-    mapping.insert(ErrorReadingConfigFile, "設定をを読込中にエラーが発生しました");
-    mapping.insert(ClickOKToDiscordAndContinue, "OKをクリックすると設定を破棄して続行します");
+    mapping.insert(
+        ErrorReadingConfigFile,
+        "設定をを読込中にエラーが発生しました",
+    );
+    mapping.insert(
+        ClickOKToDiscordAndContinue,
+        "OKをクリックすると設定を破棄して続行します",
+    );
     mapping.insert(ErrorLoadingConfigFileCaption, "エラー");
 
-    mapping.insert(ErrorWritingConfigFileText, "コンフィグを書き込み中にエラーが発生しました");
+    mapping.insert(
+        ErrorWritingConfigFileText,
+        "コンフィグを書き込み中にエラーが発生しました",
+    );
     mapping.insert(ErrorWritingConfigFileCaption, "エラー");
 
     mapping.insert(PathToVrcLogFolder, "VRCのログフォルダのパス");
     mapping.insert(VrcLogFilePattern, "VRCのログファイルのパターン(正規表現)");
     mapping.insert(KeepOriginal, "元ファイルを残す");
     mapping.insert(CopyMoveLogFileTo, "ログファイルの移動先");
-    mapping.insert(OutputFilePattern, "ログファイルの出力形式(chronoのstrftime)");
+    mapping.insert(
+        OutputFilePattern,
+        "ログファイルの出力形式(chronoのstrftime)",
+    );
     mapping.insert(UseUcForFileName, "UTCをログファイル名に使用する");
     mapping.insert(SaveConfig, "設定を保存");
     mapping.insert(ResetConfig, "設定を初期化");
@@ -205,7 +221,10 @@ fn localization_ja(mapping: &mut HashMap<Message, &str>) {
     mapping.insert(InstallSucceedText, "Task Schedulerへの登録が成功しました");
     mapping.insert(InstallSucceedCaption, "成功");
 
-    mapping.insert(UninstallSucceedText, "Task Schedulerの登録解除が成功しました");
+    mapping.insert(
+        UninstallSucceedText,
+        "Task Schedulerの登録解除が成功しました",
+    );
     mapping.insert(UninstallSucceedCaption, "成功");
 
     mapping.insert(ErrorInRenameText, "実行中にエラーが発生しました");
@@ -214,9 +233,15 @@ fn localization_ja(mapping: &mut HashMap<Message, &str>) {
     mapping.insert(RenameSucceedText, "成功しました");
     mapping.insert(RenameSucceedCaption, "成功");
 
-    mapping.insert(InvalidSourcePatternText, "設定の保存に失敗しました: VRCのログファイルのパターンが不正です");
+    mapping.insert(
+        InvalidSourcePatternText,
+        "設定の保存に失敗しました: VRCのログファイルのパターンが不正です",
+    );
     mapping.insert(InvalidSourcePatternCaption, "エラー");
 
-    mapping.insert(InvalidOutputPatternText, "設定の保存に失敗しました: ログファイルの出力形式が不正です");
+    mapping.insert(
+        InvalidOutputPatternText,
+        "設定の保存に失敗しました: ログファイルの出力形式が不正です",
+    );
     mapping.insert(InvalidOutputPatternCaption, "エラー");
 }
