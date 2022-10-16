@@ -60,8 +60,17 @@ fn main() -> Result<()> {
         Some("licenses") => {
             print!("{}", LICENSES_TXT);
         }
+        Some("help") => {
+            println!("gui(default): run in gui mode.");
+            println!("rename: run renamer with saved config.");
+            println!("scheduled: run renamer as a scheduled task. currently same as 'rename'");
+            println!("register_schedule: register to task scheduler");
+            println!("unregister_schedule: unregister from task scheduler");
+            println!("licenses: print list of dependencies & licenses");
+            println!("help: print this msesage");
+        }
         Some(unknown) => {
-            bail!("unknown log renamer mode: {}", unknown);
+            bail!("unknown log renamer mode: {}. run with 'help' to show list of mode", unknown);
         }
     }
 
