@@ -1,10 +1,10 @@
 [package]
 name = "vrc-log-renamer"
-edition = "2021"
 description = "the tool to rename logs of VRChat to have date info"
 license = "GPL-3.0-or-later"
 version.workspace = true
 authors.workspace = true
+edition.workspace = true
 repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -40,3 +40,4 @@ winsafe = { version = "0.0.11", features = ["gui"] }
 
 [build-dependencies]
 winres = "0.1.12"
+license-gen = { path = "../license-gen" }
