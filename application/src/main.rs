@@ -30,7 +30,7 @@ use crate::config::{read_config, ConfigFile};
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use anyhow::{bail, Result};
 use chrono::format::Item;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
 use regex::Captures;
 use std::borrow::Cow;
@@ -113,7 +113,13 @@ fn move_log_file(config: &ConfigFile, path: &Path, captures: Captures) -> io::Re
         }
     };
     // then, assume launch time
-    let (utc_date, local_date) = assume_launch_time(&mut file)?;
+    let (utc_date, local_date) = if config.output().file_ctime() {
+        let created = file.metadata()?.created()?;
+        let date_time = DateTime::<Local>::from(created);
+        (Some(date_time.into()), date_time.naive_local())
+    } else {
+        assume_launch_time(&mut file)?
+    };
     // now, close the file.
     drop(file);
 
@@ -129,7 +135,7 @@ fn move_log_file(config: &ConfigFile, path: &Path, captures: Captures) -> io::Re
                     .unwrap_or(Cow::Borrowed(""));
                 println!("regex: {} : {:?}", name, captured);
                 Some(captured)
-            },
+            }
             _ => None,
         }
     });

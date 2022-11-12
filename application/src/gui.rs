@@ -108,6 +108,7 @@ struct GUIInputs {
     output_folder: FileSelectBlock,
     output_pattern: TextInputBlock,
     output_use_utc: gui::CheckBox,
+    output_use_ctime: gui::CheckBox,
 }
 
 const TEXT_HEIGHT: i32 = 18;
@@ -127,7 +128,7 @@ impl MainGUI {
             // instantiate the window manager
             gui::WindowMainOpts {
                 title: "VRC Log Renamer".to_owned(),
-                size: SIZE::new(400, 323),
+                size: SIZE::new(400, 348),
                 ..Default::default() // leave all other options as default
             },
         );
@@ -186,6 +187,17 @@ impl MainGUI {
             &window,
             gui::CheckBoxOpts {
                 text: m!(UseUcForFileName).to_owned(),
+                check_state: gui::CheckState::Indeterminate,
+                position: POINT::new(10, y_pos),
+                ..Default::default()
+            },
+        );
+        y_pos += TEXT_HEIGHT + space;
+
+        let output_use_ctime = gui::CheckBox::new(
+            &window,
+            gui::CheckBoxOpts {
+                text: m!(UseFileCreationTime).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
                 position: POINT::new(10, y_pos),
                 ..Default::default()
@@ -259,6 +271,7 @@ impl MainGUI {
                 output_folder,
                 output_pattern,
                 output_use_utc,
+                output_use_ctime,
             },
             save_config,
             reset_to_default,
@@ -416,6 +429,8 @@ impl GUIInputs {
             .set_text(config.output().pattern_as_string().as_str());
         self.output_use_utc
             .set_check_state(check_state(config.output().utc_time()));
+        self.output_use_ctime
+            .set_check_state(check_state(config.output().file_ctime()));
     }
 
     pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
@@ -451,6 +466,7 @@ impl GUIInputs {
                 self.output_folder.text().into(),
                 output_pattern,
                 self.output_use_utc.is_checked(),
+                self.output_use_ctime.is_checked(),
             ),
         )))
     }

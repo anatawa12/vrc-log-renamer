@@ -168,6 +168,11 @@ pub struct Output {
         default = "Output::utc_time_default"
     )]
     utc_time: bool,
+    #[serde(
+        skip_serializing_if = "Output::is_file_ctime_default",
+        default = "Output::file_ctime_default"
+    )]
+    file_ctime: bool,
 }
 
 fn pattern_to_string(pattern: &Vec<Item<'static>>) -> Result<String, &'static str> {
@@ -314,6 +319,7 @@ impl Output {
         |x| pattern_to_string(x)
     );
     default_fns!(utc_time: bool = false);
+    default_fns!(file_ctime: bool = false);
 
     pub(crate) fn read_from_file(&mut self, toml: &Value) -> io::Result<()> {
         if let Some(Value::String(str)) = toml.get("folder") {
@@ -353,11 +359,21 @@ impl Output {
         self.utc_time
     }
 
-    pub fn new(folder: PathBuf, pattern: Vec<Item<'static>>, utc_time: bool) -> Self {
+    pub fn file_ctime(&self) -> bool {
+        self.file_ctime
+    }
+
+    pub fn new(
+        folder: PathBuf,
+        pattern: Vec<Item<'static>>,
+        utc_time: bool,
+        file_ctime: bool,
+    ) -> Self {
         Self {
             folder,
             pattern,
             utc_time,
+            file_ctime,
         }
     }
 }
@@ -368,6 +384,7 @@ impl Default for Output {
             folder: Self::folder_default(),
             pattern: Self::pattern_default(),
             utc_time: Self::utc_time_default(),
+            file_ctime: Self::file_ctime_default(),
         }
     }
 }

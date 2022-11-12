@@ -32,6 +32,7 @@ pub enum Message {
     CopyMoveLogFileTo,
     OutputFilePattern,
     UseUcForFileName,
+    UseFileCreationTime,
     SaveConfig,
     ResetConfig,
     ExecuteNow,
@@ -132,6 +133,7 @@ pub fn get_message(message: Message) -> &'static str {
         CopyMoveLogFileTo => "Copy/Move Log file to:",
         OutputFilePattern => "Output File Pattern (chrono's strftime):",
         UseUcForFileName => "Use UTC Time for log name",
+        UseFileCreationTime => "Use File creation time",
         SaveConfig => "Save Config",
         ResetConfig => "Reset Config",
         ExecuteNow => "Execute Now",
@@ -199,6 +201,7 @@ fn localization_ja(mapping: &mut HashMap<Message, &str>) {
         "ログファイルの出力形式(chronoのstrftime)",
     );
     mapping.insert(UseUcForFileName, "UTCをログファイル名に使用する");
+    mapping.insert(UseFileCreationTime, "ファイル作成日時を使用する");
     mapping.insert(SaveConfig, "設定を保存");
     mapping.insert(ResetConfig, "設定を初期化");
     mapping.insert(ExecuteNow, "実行");
