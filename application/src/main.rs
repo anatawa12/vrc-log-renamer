@@ -29,8 +29,12 @@ use winsafe_qemu as winsafe;
 use crate::config::{read_config, ConfigFile};
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use anyhow::{bail, Result};
+use chrono::format::Item;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use once_cell::race::OnceBox;
+use regex::Captures;
+use std::borrow::Cow;
+use std::convert::Infallible;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -70,7 +74,10 @@ fn main() -> Result<()> {
             println!("help: print this msesage");
         }
         Some(unknown) => {
-            bail!("unknown log renamer mode: {}. run with 'help' to show list of mode", unknown);
+            bail!(
+                "unknown log renamer mode: {}. run with 'help' to show list of mode",
+                unknown
+            );
         }
     }
 
@@ -82,13 +89,13 @@ fn rename_main(config: &ConfigFile) -> Result<()> {
     fs::create_dir_all(out_folder)?;
     for entry in fs::read_dir(config.source().folder())? {
         let entry = entry?;
-        if config
+        if let Some(captures) = config
             .source()
             .pattern()
-            .is_match(&entry.file_name().to_string_lossy())
+            .captures(&entry.file_name().to_string_lossy())
         {
             println!("{} matches pattern. checking", entry.path().display());
-            if let Some(err) = move_log_file(config, &entry.path()).err() {
+            if let Some(err) = move_log_file(config, &entry.path(), captures).err() {
                 eprintln!("error moving '{}': {}", entry.path().display(), err);
             }
         }
@@ -96,7 +103,7 @@ fn rename_main(config: &ConfigFile) -> Result<()> {
     Ok(())
 }
 
-fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
+fn move_log_file(config: &ConfigFile, path: &Path, captures: Captures) -> io::Result<()> {
     // first, try to open as read to check if the log file is not of running VRChat
     let mut file = match fs::File::options().write(true).read(true).open(path) {
         Ok(f) => f,
@@ -112,12 +119,24 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
 
     // Data to copy log is ready. Now, move/copy log file.
     fs::create_dir_all(config.output().folder())?;
+    let pat_iter = MatchingIter::new(config.output().pattern().iter(), |name| {
+        let (namespace, name) = name.split_once(':')?;
+        match namespace {
+            "regex" => {
+                let captured = captures
+                    .name(name)
+                    .map(|matches| Cow::Owned(matches.as_str().to_owned()))
+                    .unwrap_or(Cow::Borrowed(""));
+                println!("regex: {} : {:?}", name, captured);
+                Some(captured)
+            },
+            _ => None,
+        }
+    });
     let date_format = if config.output().utc_time() {
-        utc_date
-            .unwrap()
-            .format_with_items(config.output().pattern().iter())
+        utc_date.unwrap().format_with_items(pat_iter)
     } else {
-        local_date.format_with_items(config.output().pattern().iter())
+        local_date.format_with_items(pat_iter)
     };
     let dst_path = config.output().folder().join(format!("{}", date_format));
 
@@ -139,6 +158,74 @@ fn move_log_file(config: &ConfigFile, path: &Path) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+#[derive(Clone)]
+struct MatchingIter<'a, I: Iterator<Item = &'a Item<'static>>, F: Fn(&str) -> Option<Cow<str>>> {
+    base_iter: I,
+    f: F,
+}
+
+impl<'a, I: Iterator<Item = &'a Item<'static>>, F: Fn(&str) -> Option<Cow<str>>>
+    MatchingIter<'a, I, F>
+{
+    fn new(base_iter: I, f: F) -> Self {
+        Self { base_iter, f }
+    }
+
+    pub(crate) fn process_lit(&self, pat_in: &str) -> Option<String> {
+        let mut builder = String::new();
+        fn loops(
+            f: &impl Fn(&str) -> Option<Cow<str>>,
+            pat: &mut &str,
+            builder: &mut String,
+        ) -> Option<Infallible> {
+            loop {
+                let pat_start = pat.find('{')?;
+                builder.push_str(&pat[..pat_start]);
+                *pat = &pat[pat_start..];
+                let pat_end = pat.find('}').map(|x| x + 1)?;
+                let var = &pat[..pat_end];
+                *pat = &pat[pat_end..];
+                // remove { and }
+                let var_name = &var[1..var.len() - 1];
+                builder.push_str(f(var_name).as_deref().unwrap_or(var))
+            }
+        }
+
+        let mut pat = pat_in;
+
+        loops(&self.f, &mut pat, &mut builder);
+
+        if pat_in as *const _ == pat as *const _ {
+            return None;
+        }
+
+        builder.push_str(pat);
+
+        Some(builder)
+    }
+}
+
+impl<'a, I: Iterator<Item = &'a Item<'static>>, F: Fn(&str) -> Option<Cow<str>>> Iterator
+    for MatchingIter<'a, I, F>
+{
+    type Item = Cow<'a, Item<'static>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let iterm = self.base_iter.next()?;
+        Some(match iterm {
+            i @ Item::Literal(lit) => match self.process_lit(lit) {
+                None => Cow::Borrowed(i),
+                Some(changed) => Cow::Owned(Item::OwnedLiteral(changed.into_boxed_str())),
+            },
+            i @ Item::OwnedLiteral(lit) => match self.process_lit(lit) {
+                None => Cow::Borrowed(i),
+                Some(changed) => Cow::Owned(Item::OwnedLiteral(changed.into_boxed_str())),
+            },
+            other => Cow::Borrowed(other),
+        })
+    }
 }
 
 fn assume_launch_time(f: &mut fs::File) -> io::Result<(Option<DateTime<Utc>>, NaiveDateTime)> {
