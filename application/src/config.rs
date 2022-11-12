@@ -118,7 +118,7 @@ impl Source {
     }
 
     default_fns!(folder: PathBuf = local_low_appdata_path().join("VRChat").join("VRChat"));
-    default_fns!(pattern: Regex = Regex::new(r#"^output_log_\d{2}-\d{2}-\d{2}\.txt$"#).unwrap(); |x| x.as_str());
+    default_fns!(pattern: Regex = Regex::new(r#"^output_log_\d{2}-\d{2}-\d{2}(?P<in_sec_num>\d+)?\.txt$"#).unwrap(); |x| x.as_str());
     default_fns!(keep_old: bool = true);
 
     pub fn folder(&self) -> &PathBuf {
@@ -310,7 +310,7 @@ impl Output {
             .join("logs")
     );
     default_fns!(
-        pattern: Vec<Item<'static>> = StrftimeItems::new("output_log_%Y-%m-%d_%H-%M-%S.txt").collect::<Vec<_>>();
+        pattern: Vec<Item<'static>> = StrftimeItems::new("output_log_%Y-%m-%d_%H-%M-%S{regex:in_sec_num}.txt").collect::<Vec<_>>();
         |x| pattern_to_string(x)
     );
     default_fns!(utc_time: bool = false);
