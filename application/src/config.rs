@@ -310,8 +310,8 @@ impl Output {
             .join("logs")
     );
     default_fns!(
-        pattern: Vec<Item<'static>> =
-            StrftimeItems::new("output_log_%Y-%m-%d_%H-%M-%S.txt").collect::<Vec<_>>()
+        pattern: Vec<Item<'static>> = StrftimeItems::new("output_log_%Y-%m-%d_%H-%M-%S.txt").collect::<Vec<_>>();
+        |x| pattern_to_string(x)
     );
     default_fns!(utc_time: bool = false);
 
@@ -320,12 +320,16 @@ impl Output {
             self.folder = PathBuf::from(str)
         }
         if let Some(Value::String(str)) = toml.get("pattern") {
-            self.pattern = parse_pattern(&str).ok_or_else(|| {
-                Error::new(
-                    ErrorKind::InvalidData,
-                    format!("'{}' is invalid log file pattern", str),
-                )
-            })?;
+            // previously, skip_serializing_if = "Output::is_pattern_default" is not working well.
+            static TRADITIONAL_DEFAULT: &str = "output_log_%0Y-%0m-%0d_%0H-%0M-%0S.txt";
+            if str != TRADITIONAL_DEFAULT {
+                self.pattern = parse_pattern(&str).ok_or_else(|| {
+                    Error::new(
+                        ErrorKind::InvalidData,
+                        format!("'{}' is invalid log file pattern", str),
+                    )
+                })?;
+            }
         }
         if let Some(Value::Boolean(bool)) = toml.get("utc_time") {
             self.utc_time = *bool;
