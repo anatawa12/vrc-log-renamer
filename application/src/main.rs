@@ -157,7 +157,32 @@ fn move_log_file(config: &ConfigFile, path: &Path, captures: Captures) -> io::Re
 
     if config.source().keep_old() {
         // copy log file
-        fs::copy(path, dst_path)?;
+        fs::copy(&path, &dst_path)?;
+        // copy ctime and mtime
+        use std::fs::File;
+        use std::os::windows::fs::MetadataExt;
+        use std::os::windows::io::AsRawHandle;
+        use windows::Win32::Foundation::HANDLE;
+        use windows::Win32::Foundation::FILETIME;
+        fn new_filetime(time: u64) -> FILETIME {
+            FILETIME {
+                dwLowDateTime: (time & 0xFFFFFFFF) as u32,
+                dwHighDateTime: (time >> 32 & 0xFFFFFFFF) as u32,
+            }
+        }
+        let metadata = File::open(&path)?.metadata()?;
+        let handle = HANDLE(File::open(&dst_path)?.as_raw_handle() as isize);
+        let success = unsafe {
+            windows::Win32::Storage::FileSystem::SetFileTime(
+                handle,
+                Some(&new_filetime(metadata.creation_time())),
+                None,
+                Some(&new_filetime(metadata.last_write_time())),
+            )
+        };
+        if success.as_bool() {
+            return Err(io::Error::last_os_error());
+        }
     } else {
         // move log file
         move_file(path, dst_path)?;
