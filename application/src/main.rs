@@ -171,7 +171,7 @@ fn move_log_file(config: &ConfigFile, path: &Path, captures: Captures) -> io::Re
             }
         }
         let metadata = File::open(&path)?.metadata()?;
-        let dst_file = File::open(&dst_path)?;
+        let dst_file = File::options().write(true).open(&dst_path)?;
         let handle = HANDLE(dst_file.as_raw_handle() as isize);
         let success = unsafe {
             windows::Win32::Storage::FileSystem::SetFileTime(
