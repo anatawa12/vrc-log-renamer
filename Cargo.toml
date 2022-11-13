@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.1.0"
+version = "1.1.1"
 authors = ["anatawa12"]
 repository = "https://github.com/anatawa12/vrc-log-renamer"
 edition = "2021"
