@@ -175,6 +175,30 @@ pub struct Output {
     file_ctime: bool,
 }
 
+fn format_internal_format(fixed: &chrono::format::InternalFixed) -> Option<&'static str> {
+    use chrono::format::InternalFixed;
+    use once_cell::race::OnceBox;
+    type MappingType = [(InternalFixed, &'static str); 3];
+    static MAPPING: OnceBox<MappingType> = OnceBox::new();
+    fn init_mapping() -> Box<MappingType> {
+        fn fixed_internal(format: &str) -> (InternalFixed, &str) {
+            match StrftimeItems::new(format).next().unwrap() {
+                Item::Fixed(Fixed::Internal(fixed)) => (fixed, format),
+                _ => unreachable!("fixed_internal init failed"),
+            }
+        }
+        Box::new([
+            fixed_internal("%3f"),
+            fixed_internal("%6f"),
+            fixed_internal("%9f"),
+        ])
+    }
+    MAPPING.get_or_init(init_mapping)
+        .iter()
+        .find(|(pat, _)| pat == fixed)
+        .map(|(_, a)| *a)
+}
+
 fn pattern_to_string(pattern: &Vec<Item<'static>>) -> Result<String, &'static str> {
     let mut string = String::new();
     for x in pattern {
@@ -256,7 +280,9 @@ fn pattern_to_string(pattern: &Vec<Item<'static>>) -> Result<String, &'static st
                 Fixed::RFC3339 => string.push_str("%+"),
                 Fixed::TimezoneOffsetColonZ => return Err("internal format found"),
                 Fixed::TimezoneOffsetZ => return Err("internal format found"),
-                Fixed::Internal(_) => return Err("internal format found"),
+                Fixed::Internal(format_in) => {
+                    string.push_str(format_internal_format(format_in).ok_or("internal format found")?);
+                }
             },
             Item::Error => return Err("format error found"),
         }
@@ -287,14 +313,16 @@ pub fn parse_pattern(str: &str) -> Option<Vec<Item<'static>>> {
                 }
             }
             Item::Fixed(f) => {
-                if matches!(
-                    f,
-                    Fixed::Internal(_) | Fixed::TimezoneOffsetColonZ | Fixed::TimezoneOffsetZ
-                ) {
-                    // internal and -Z format is not allowed
-                    Item::Error
-                } else {
-                    Item::Fixed(f)
+                match f {
+                    Fixed::Internal(internal) => {
+                        if format_internal_format(&internal).is_some() {
+                            Item::Fixed(Fixed::Internal(internal))
+                        } else {
+                            Item::Error
+                        }
+                    }
+                    Fixed::TimezoneOffset | Fixed::TimezoneOffsetZ => Item::Error,
+                    f => Item::Fixed(f)
                 }
             }
             Item::Error => Item::Error,
