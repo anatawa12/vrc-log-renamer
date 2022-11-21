@@ -1,3 +1,6 @@
 [submodule "winsafe"]
 	path = winsafe
 	url = https://github.com/anatawa12/winsafe
+[submodule "license-gen"]
+	path = license-gen
+	url = https://github.com/anatawa12/license-gen.git
