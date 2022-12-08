@@ -284,7 +284,7 @@ dependencies = [
 
 [[package]]
 name = "proc-macros"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -428,7 +428,7 @@ checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 
 [[package]]
 name = "vrc-log-renamer"
-version = "1.1.1"
+version = "1.1.2"
 dependencies = [
  "anyhow",
  "chrono",
