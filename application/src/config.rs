@@ -118,7 +118,7 @@ impl Source {
     }
 
     default_fns!(folder: PathBuf = local_low_appdata_path().join("VRChat").join("VRChat"));
-    default_fns!(pattern: Regex = Regex::new(r#"^output_log_\d{2}-\d{2}-\d{2}(?P<in_sec_num>\d+)?\.txt$"#).unwrap(); |x| x.as_str());
+    default_fns!(pattern: Regex = Regex::new(r#"^output_log_(?:\d{4}-\d{2}-\d{2}_)?\d{2}-\d{2}-\d{2}(?P<in_sec_num>\d+)?\.txt$"#).unwrap(); |x| x.as_str());
     default_fns!(keep_old: bool = true);
 
     pub fn folder(&self) -> &PathBuf {
