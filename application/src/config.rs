@@ -368,6 +368,9 @@ impl Output {
         if let Some(Value::Boolean(bool)) = toml.get("utc_time") {
             self.utc_time = *bool;
         }
+        if let Some(Value::Boolean(bool)) = toml.get("file_ctime") {
+            self.file_ctime = *bool;
+        }
         Ok(())
     }
 
