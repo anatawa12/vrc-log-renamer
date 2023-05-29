@@ -15,8 +15,6 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cell::UnsafeCell;
-#[cfg(target_env = "gnu")]
-use winsafe_qemu as winsafe;
 
 use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
 use crate::i18n::init_i18n;
