@@ -23,9 +23,6 @@ mod config;
 mod gui;
 mod task_managers;
 
-#[cfg(target_env = "gnu")]
-use winsafe_qemu as winsafe;
-
 use crate::config::{read_config, ConfigFile};
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use anyhow::{bail, Result};

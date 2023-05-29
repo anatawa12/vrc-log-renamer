@@ -15,21 +15,19 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::cell::UnsafeCell;
-#[cfg(target_env = "gnu")]
-use winsafe_qemu as winsafe;
 
 use crate::config::{parse_pattern, read_config, save_config, ConfigFile, Output, Source};
 use crate::i18n::init_i18n;
 use crate::i18n::Message::*;
 use crate::task_managers::{register_task_manager, unregister_task_manager};
 use crate::{config_file_path, rename_main};
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use regex::Regex;
 use winsafe::co::FOS;
 use winsafe::co::{DLGID, MB};
 use winsafe::prelude::*;
 use winsafe::prelude::{user_Hwnd, GuiNativeControlEvents, GuiWindow};
-use winsafe::SHCreateItemFromParsingName;
+use winsafe::{AnyResult, IBindCtx, IShellItem, SHCreateItemFromParsingName};
 use winsafe::{co, CoCreateInstance, IFileOpenDialog};
 use winsafe::{gui, HWND, POINT, SIZE};
 
@@ -42,7 +40,7 @@ pub fn gui_main() -> Result<()> {
 
     let gui = MainGUI::new();
     gui.lazy_load_config(config);
-    gui.run()?;
+    gui.run().map_err(|e| anyhow!(e))?;
 
     Ok(())
 }
@@ -128,7 +126,7 @@ impl MainGUI {
             // instantiate the window manager
             gui::WindowMainOpts {
                 title: "VRC Log Renamer".to_owned(),
-                size: SIZE::new(400, 348),
+                size: (400, 348),
                 ..Default::default() // leave all other options as default
             },
         );
@@ -140,7 +138,7 @@ impl MainGUI {
             &window,
             m!(PathToVrcLogFolder).to_owned(),
             String::new(),
-            POINT::new(10, y_pos),
+            (10, y_pos),
             380,
         );
         y_pos += FileSelectBlock::HEIGHT + space;
@@ -149,7 +147,7 @@ impl MainGUI {
             &window,
             m!(VrcLogFilePattern).to_owned(),
             String::new(),
-            POINT::new(10, y_pos),
+            (10, y_pos),
             380,
         );
         y_pos += TextInputBlock::HEIGHT + space;
@@ -159,7 +157,7 @@ impl MainGUI {
             gui::CheckBoxOpts {
                 text: m!(KeepOriginal).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
-                position: POINT::new(10, y_pos),
+                position: (10, y_pos),
                 ..Default::default()
             },
         );
@@ -169,7 +167,7 @@ impl MainGUI {
             &window,
             m!(CopyMoveLogFileTo).to_owned(),
             String::new(),
-            POINT::new(10, y_pos),
+            (10, y_pos),
             380,
         );
         y_pos += FileSelectBlock::HEIGHT + space;
@@ -178,7 +176,7 @@ impl MainGUI {
             &window,
             m!(OutputFilePattern).to_owned(),
             String::new(),
-            POINT::new(10, y_pos),
+            (10, y_pos),
             380,
         );
         y_pos += TextInputBlock::HEIGHT + space;
@@ -188,7 +186,7 @@ impl MainGUI {
             gui::CheckBoxOpts {
                 text: m!(UseUcForFileName).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
-                position: POINT::new(10, y_pos),
+                position: (10, y_pos),
                 ..Default::default()
             },
         );
@@ -199,7 +197,7 @@ impl MainGUI {
             gui::CheckBoxOpts {
                 text: m!(UseFileCreationTime).to_owned(),
                 check_state: gui::CheckState::Indeterminate,
-                position: POINT::new(10, y_pos),
+                position: (10, y_pos),
                 ..Default::default()
             },
         );
@@ -209,7 +207,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: m!(SaveConfig).to_owned(),
-                position: POINT::new(10, y_pos),
+                position: (10, y_pos),
                 width: 120,
                 height: 23,
                 ..Default::default()
@@ -220,7 +218,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: m!(ResetConfig).to_string(),
-                position: POINT::new(140, y_pos),
+                position: (140, y_pos),
                 width: 120,
                 height: 23,
                 ..Default::default()
@@ -231,7 +229,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: m!(ExecuteNow).to_owned(),
-                position: POINT::new(270, y_pos),
+                position: (270, y_pos),
                 width: 120,
                 height: 23,
                 ..Default::default()
@@ -244,7 +242,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: m!(InstallToTaskScheduler).to_owned(),
-                position: POINT::new(10, y_pos),
+                position: (10, y_pos),
                 width: 185,
                 height: 23,
                 ..Default::default()
@@ -255,7 +253,7 @@ impl MainGUI {
             &window,
             gui::ButtonOpts {
                 text: m!(UninstallFromTaskScheduler).to_owned(),
-                position: POINT::new(205, y_pos),
+                position: (205, y_pos),
                 width: 185,
                 height: 23,
                 ..Default::default()
@@ -287,7 +285,7 @@ impl MainGUI {
         self.inputs.load_values_from_config(config);
     }
 
-    pub fn run(&self) -> gui::MsgResult<i32> {
+    pub fn run(&self) -> AnyResult<i32> {
         self.window.run_main(None) // simply let the window manager do the hard work
     }
 
@@ -433,7 +431,7 @@ impl GUIInputs {
             .set_check_state(check_state(config.output().file_ctime()));
     }
 
-    pub fn create_config(&self, window: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
+    pub fn create_config(&self, window: &HWND) -> Result<Option<ConfigFile>, co::ERROR> {
         let source_pattern = match Regex::new(&self.source_pattern.text()) {
             Ok(pat) => pat,
             Err(_) => {
@@ -471,7 +469,7 @@ impl GUIInputs {
         )))
     }
 
-    pub(crate) fn create_save_config(&self, hwnd: HWND) -> Result<Option<ConfigFile>, co::ERROR> {
+    pub(crate) fn create_save_config(&self, hwnd: &HWND) -> Result<Option<ConfigFile>, co::ERROR> {
         if let Some(new_config) = self.create_config(hwnd)? {
             if let Some(_) = save_config_with_error_dialog(&new_config).ok() {
                 return Ok(Some(new_config));
@@ -481,8 +479,8 @@ impl GUIInputs {
     }
 }
 
-fn add_point(a: POINT, b: POINT) -> POINT {
-    POINT::new(a.x + b.x, a.y + b.y)
+fn add_point(a: (i32, i32), b: (i32, i32)) -> (i32, i32) {
+    (a.0 + b.0, a.1 + b.1)
 }
 
 #[derive(Clone)]
@@ -499,7 +497,7 @@ impl FileSelectBlock {
         window: &impl GuiParent,
         name: String,
         initial: String,
-        origin: POINT,
+        origin: (i32, i32),
         width: u32,
     ) -> FileSelectBlock {
         Self {
@@ -507,7 +505,7 @@ impl FileSelectBlock {
                 window,
                 gui::LabelOpts {
                     text: name,
-                    position: add_point(origin, POINT::new(0, 0)),
+                    position: add_point(origin, (0, 0)),
                     ..Default::default()
                 },
             ),
@@ -515,7 +513,7 @@ impl FileSelectBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
+                    position: add_point(origin, (0, TEXT_HEIGHT)),
                     width: width - 100,
                     height: 23,
                     ..Default::default()
@@ -525,7 +523,7 @@ impl FileSelectBlock {
                 window,
                 gui::ButtonOpts {
                     text: m!(SelectInGuiButtonText).to_owned(),
-                    position: add_point(origin, POINT::new((width - 90) as i32, TEXT_HEIGHT)),
+                    position: add_point(origin, ((width - 90) as i32, TEXT_HEIGHT)),
                     width: 90,
                     height: 23,
                     ..Default::default()
@@ -553,7 +551,7 @@ impl FileSelectBlock {
                     co::CLSCTX::INPROC_SERVER,
                 )?;
                 obj.SetTitle(&title)?;
-                if let Some(item) = SHCreateItemFromParsingName(&edit.text(), None).ok() {
+                if let Some(item) = SHCreateItemFromParsingName::<IShellItem>(&edit.text(), Option::<&IBindCtx>::None).ok() {
                     obj.SetFolder(&item)?;
                 }
                 obj.SetFileName(&edit.text())?;
@@ -582,7 +580,7 @@ impl TextInputBlock {
         window: &impl GuiParent,
         name: String,
         initial: String,
-        origin: POINT,
+        origin: (i32, i32),
         width: u32,
     ) -> Self {
         Self {
@@ -590,7 +588,7 @@ impl TextInputBlock {
                 window,
                 gui::LabelOpts {
                     text: name,
-                    position: add_point(origin, POINT::new(0, 0)),
+                    position: add_point(origin, (0, 0)),
                     ..Default::default()
                 },
             ),
@@ -598,7 +596,7 @@ impl TextInputBlock {
                 window,
                 gui::EditOpts {
                     text: initial,
-                    position: add_point(origin, POINT::new(0, TEXT_HEIGHT)),
+                    position: add_point(origin, (0, TEXT_HEIGHT)),
                     width,
                     height: 23,
                     ..Default::default()
